@@ -130,6 +130,7 @@ class ExcelOnlineWriter:
         self.etag = None
         self.agregados = 0
         self.tabla = None
+        self.ancho = None
 
     def claves_existentes(self, campos: Sequence[Campo]) -> set[str]:
         datos, self.etag = self.archivo.leer()
@@ -140,6 +141,7 @@ class ExcelOnlineWriter:
             raise ValueError(f"No existe la hoja requerida: {self.hoja}")
         self.ws = self.wb[self.hoja]
         columnas = ["document_key", "processed_utc", *[campo.nombre for campo in campos]]
+        self.ancho = len(columnas)
         if len(columnas) > 16384:
             raise ValueError("Demasiadas columnas")
         actuales = [self.ws.cell(1, i + 1).value for i in range(len(columnas))]
@@ -184,7 +186,7 @@ class ExcelOnlineWriter:
         if not self.agregados:
             return
         from openpyxl.utils import get_column_letter
-        final = f"A1:{get_column_letter(self.ws.max_column)}{self.ws.max_row}"
+        final = f"A1:{get_column_letter(self.ancho)}{self.ws.max_row}"
         if self.tabla:
             self.tabla.ref = final
             if self.tabla.autoFilter:
