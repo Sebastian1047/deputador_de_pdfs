@@ -68,10 +68,10 @@ def main() -> None:
     gmail, sheets = crear_servicios_google()
     correo = GmailReader(
         gmail,
-        os.getenv("GMAIL_QUERY", "has:attachment filename:pdf newer_than:30d"),
+        (os.getenv("GMAIL_QUERY") or "has:attachment filename:pdf newer_than:30d"),
         int(os.getenv("MAX_EMAILS", "250")),
     )
-    tabla = GoogleSheetsWriter(sheets, identificador, os.getenv("GOOGLE_SHEET_TAB", "Registros"))
+    tabla = GoogleSheetsWriter(sheets, identificador, (os.getenv("GOOGLE_SHEET_TAB") or "Registros"))
     resumen = procesar(correo, tabla, campos)
     print("RESUMEN:", json.dumps(resumen, ensure_ascii=False))
     if resumen["errores"]:
