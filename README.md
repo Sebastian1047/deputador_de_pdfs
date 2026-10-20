@@ -17,31 +17,31 @@ Aplicación para extraer campos de muchos PDF adjuntos a mensajes de correo, **s
 
 Se necesita Python 3.11+.
 
-\`\`\`bash
+```bash
 pip install -r requirements.txt
 pytest -q
 python -m depurador --demo
-\`\`\`
+```
 
 La demo genera un PDF de ejemplo **en memoria**, extrae tres valores y simula una fila. No accede a Gmail ni Drive.
 
 ## Configuración para Gmail y Drive
 
 1. En Google Cloud crear un proyecto; habilitar **Gmail API** y **Google Sheets API**.
-2. Configurar consentimiento OAuth 2.0 para la cuenta autorizada. Conceder solamente los ámbitos \`gmail.readonly\` y \`spreadsheets\`. Obtener un **refresh token** con consentimiento del dueño de la cuenta y acceso sin conexión; puede requerir verificación/publicación de la aplicación en Google según el caso. No publicar credenciales en GitHub.
-3. Crear en Google Drive una **hoja nativa de Google Sheets** con una pestaña llamada \`Registros\`. Copiar el ID de la URL. **Importante:** un Excel \`.xlsx\` alojado en Drive no es lo mismo que una hoja nativa; debe convertirse o añadirse otro adaptador.
-4. Ajustar \`config/campos.json\` con las columnas necesarias según un PDF auténtico. \`config/campos.ejemplo.json\` muestra el formato de patrones de demostración, no los campos reales.
+2. Configurar consentimiento OAuth 2.0 para la cuenta autorizada. Conceder solamente los ámbitos `gmail.readonly` y `spreadsheets`. Obtener un **refresh token** con consentimiento del dueño de la cuenta y acceso sin conexión; puede requerir verificación/publicación de la aplicación en Google según el caso. No publicar credenciales en GitHub.
+3. Crear en Google Drive una **hoja nativa de Google Sheets** con una pestaña llamada `Registros`. Copiar el ID de la URL. **Importante:** un Excel `.xlsx` alojado en Drive no es lo mismo que una hoja nativa; debe convertirse o añadirse otro adaptador.
+4. Ajustar `config/campos.json` con las columnas necesarias según un PDF auténtico. `config/campos.ejemplo.json` muestra el formato de patrones de demostración, no los campos reales.
 5. GitHub → Settings → Secrets and variables → Actions → **Secrets**:
-   - \`GOOGLE_CLIENT_ID\`
-   - \`GOOGLE_CLIENT_SECRET\`
-   - \`GOOGLE_REFRESH_TOKEN\`
+   - `GOOGLE_CLIENT_ID`
+   - `GOOGLE_CLIENT_SECRET`
+   - `GOOGLE_REFRESH_TOKEN`
 6. En **Variables**:
-   - \`GOOGLE_SPREADSHEET_ID\`: ID de la hoja nativa en Drive.
-   - \`GOOGLE_SHEET_TAB\`: \`Registros\`.
-   - \`GMAIL_QUERY\`: por ejemplo \`has:attachment filename:pdf newer_than:30d\`, idealmente añadir remitente/etiqueta específica.
-   - \`PROCESAMIENTO_ACTIVO\`: \`true\` **solo** después de probar.
-7. Ir a Actions → **Procesar PDF del correo** → Run workflow. Por defecto, las ejecuciones programadas se omiten si no está activa la variable \`PROCESAMIENTO_ACTIVO\`. El horario de ejemplo es 13:17 y 19:17 UTC; ajustarlo con el cliente.
-8. Se agregan columnas \`document_key\` y \`processed_utc\` para evitar duplicados. Las demás columnas corresponden a los campos configurados. Una vez creada la tabla, no cambiar nombres/orden sin una migración.
+   - `GOOGLE_SPREADSHEET_ID`: ID de la hoja nativa en Drive.
+   - `GOOGLE_SHEET_TAB`: `Registros`.
+   - `GMAIL_QUERY`: por ejemplo `has:attachment filename:pdf newer_than:30d`, idealmente añadir remitente/etiqueta específica.
+   - `PROCESAMIENTO_ACTIVO`: `true` **solo** después de probar.
+7. Ir a Actions → **Procesar PDF del correo** → Run workflow. Por defecto, las ejecuciones programadas se omiten si no está activa la variable `PROCESAMIENTO_ACTIVO`. El horario de ejemplo es 13:17 y 19:17 UTC; ajustarlo con el cliente.
+8. Se agregan columnas `document_key` y `processed_utc` para evitar duplicados. Las demás columnas corresponden a los campos configurados. Una vez creada la tabla, no cambiar nombres/orden sin una migración.
 
 **Atención:** GitHub Actions puede retrasar ejecuciones programadas, y GitHub deshabilita automáticamente las programaciones en repositorios públicos sin actividad por 60 días. No garantiza procesamiento inmediato.
 
@@ -51,19 +51,19 @@ El repositorio es **público**. No subir ni registrar correos, PDF reales, infor
 
 ## Arquitectura
 
-\`\`\`text
+```text
 GmailReader ---\
                 → core.procesar() → GoogleSheetsWriter
 OtroReader ----/                   ↘ OtroWriter (posterior)
                 ↳ extracción PDF y reglas en config/campos.json
-\`\`\`
+```
 
-Para cambiar el correo/tabla se implementan nuevos adaptadores y se actualiza la selección del proveedor: el motor \`core.py\` se mantiene. No hay servidor Python permanente; GitHub Pages es solo una interfaz estática y GitHub Actions ejecuta Python cuando corresponda.
+Para cambiar el correo/tabla se implementan nuevos adaptadores y se actualiza la selección del proveedor: el motor `core.py` se mantiene. No hay servidor Python permanente; GitHub Pages es solo una interfaz estática y GitHub Actions ejecuta Python cuando corresponda.
 
 ## Límites de esta primera versión
 
 - Reglas de extracción aún no definidas: necesitamos un PDF de ejemplo (puede ser anonimizado) y los nombres de las columnas de destino.
 - Los documentos deben contener texto seleccionable. El OCR para imágenes escaneadas se agregará si es necesario.
-- La idempotencia usa la clave \`document_key\` de cada adjunto en Sheets; no elimina duplicados si se reenvía el mismo PDF como adjunto de otro mensaje.
+- La idempotencia usa la clave `document_key` de cada adjunto en Sheets; no elimina duplicados si se reenvía el mismo PDF como adjunto de otro mensaje.
 - El procesamiento depende de OAuth/consentimiento real, límites de APIs y permisos de acceso. No se ha ejecutado una integración real.
 - Esta página web no ejecuta Python desde el navegador ni muestra datos privados; para una consola operativa con autenticación habrá que definir un backend o servicio compatible.
