@@ -1,0 +1,37 @@
+DEPURADOR DE PDF — VERSIÓN PORTABLE PARA WINDOWS
+=================================================
+
+NO HAY QUE INSTALAR PYTHON NI PROGRAMAS ADICIONALES.
+
+CÓMO ABRIR
+1. Extraiga el archivo ZIP descargado desde GitHub.
+2. Haga doble clic en DepuradorPDF.exe.
+3. Se abrirá una ventana propia de la aplicación. No hay instalador.
+
+PRIMER USO
+- Puede pulsar "Probar sin conexión" de inmediato, sin cuenta ni conexión.
+- Para usar correos reales deberá autorizar Gmail en el navegador una sola vez,
+  proporcionar la configuración OAuth del proyecto Google y elegir la hoja de
+  Google Sheets. Es una autorización, NO una instalación.
+- Configurar los campos a extraer requiere un PDF de ejemplo.
+- Después pulse "Buscar correos", seleccione UN mensaje y elija
+  "Procesar correo seleccionado".
+- Los PDF no se guardan en carpetas: se procesan en memoria.
+- Para usar Gmail/Sheets reales sí necesita conexión a Internet.
+
+USO EN OTRO PORTÁTIL
+- Puede copiar el EXE a otro portátil Windows compatible.
+- No requiere Python. El segundo usuario/equipo debe autorizar su propia cuenta
+  y configurar su hoja y campos.
+
+DATOS Y PRIVACIDAD
+- No incluya contraseñas ni PDF privados en GitHub.
+- Las preferencias y la autorización se guardan en el perfil Windows del usuario,
+  en %APPDATA%\DepuradorPDF, NO dentro del EXE.
+- Evite instalarlo en equipos compartidos sin protección de acceso.
+- Este EXE no está firmado digitalmente: Windows podría solicitar confirmación
+  según las políticas de seguridad. Descárguelo solo del proyecto de confianza.
+- Windows puede tardar unos segundos en abrirlo la primera vez.
+
+CÓDIGO FUENTE:
+https://github.com/Sebastian1047/deputador_de_pdfs

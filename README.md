@@ -1,4 +1,4 @@
-# Depurador de PDF · Python (v0.3.0)
+# Depurador de PDF · Python (v0.3.1)
 
 Aplicación para extraer campos de muchos PDF adjuntos a mensajes de correo, **sin descargarlos manualmente**, y escribir los resultados en una hoja de cálculo en la nube. El proyecto usa inicialmente **Gmail + Google Sheets (en Drive)**, con adaptadores para reemplazarlos luego por las herramientas del cliente.
 
@@ -69,21 +69,26 @@ Para cambiar el correo/tabla se implementan nuevos adaptadores y se actualiza la
 - Esta página web no ejecuta Python desde el navegador ni muestra datos privados; para una consola operativa con autenticación habrá que definir un backend o servicio compatible.
 
 
-## Versión de escritorio Windows — v0.3.0
+## Versión de escritorio Windows — v0.3.1
 
 La aplicación de escritorio con Tkinter utiliza el mismo motor Python que la versión web. Tiene botones para probar con PDF ficticio, conectar Gmail/Sheets, buscar correos que tienen PDF, seleccionar un único mensaje de la lista, editar las reglas y procesar solamente los adjuntos de ese correo.
 
-### Obtener el ejecutable (.exe) desde GitHub
+### Abrir en cualquier portátil Windows SIN instalar nada
+
+La versión de escritorio es **portable**: un único archivo `DepuradorPDF.exe` que incorpora Python y las bibliotecas utilizadas. **No requiere instalar Python, ejecutar comandos ni abrir el navegador para mostrar la ventana.** La primera vez, para trabajar con Gmail real, sí se debe autorizar Google y configurar el destino y los campos.
 
 1. Abra https://github.com/Sebastian1047/deputador_de_pdfs/actions/workflows/escritorio.yml
-2. Seleccione una ejecución exitosa (o lance Run workflow).
-3. Descargue el artefacto llamado DepuradorPDF-Windows y descomprima el archivo ZIP.
-4. Ejecute DepuradorPDF.exe en Windows. No necesita instalar Python.
+2. Abra una compilación **exitosa** del flujo *Compilar escritorio Windows portable*.
+3. Descargue el artefacto `DepuradorPDF-Portable-Windows` (GitHub lo entrega en un archivo ZIP).
+4. Extraiga su contenido en una carpeta del portátil y haga **doble clic en `DepuradorPDF.exe`**. No hay asistente ni instalador. El ZIP incluye `LEEME.txt`.
+5. La aplicación se abre incluso sin cuenta Google. **Probar sin conexión** ejecuta una prueba con un PDF ficticio.
 
-También puede iniciar la ventana desde el código fuente con:
+Para desarrollar desde el código fuente (no es necesario para usuarios del EXE):
 
     pip install -r requirements-desktop.txt
     python -m depurador.escritorio
+
+La compilación y las pruebas de Windows se ejecutan en los servidores de GitHub, no en el portátil del usuario. El ejecutable incluye una autoprueba interna del motor PDF para comprobar el empaquetado antes de publicar el artefacto. No se firma digitalmente, por lo que Windows podría advertir sobre aplicaciones no reconocidas; no es preciso desactivar antivirus ni protecciones de Windows.
 
 ### Configuración en el portátil
 

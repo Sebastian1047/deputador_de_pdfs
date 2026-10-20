@@ -1,4 +1,4 @@
-name: Compilar escritorio Windows
+name: Compilar escritorio Windows portable
 on:
   workflow_dispatch:
   push:
@@ -8,9 +8,10 @@ on:
       - 'desktop_launcher.py'
       - 'requirements*.txt'
       - 'tests/**'
+      - 'docs/LEEME-PORTABLE.txt'
       - '.github/workflows/escritorio.yml'
 jobs:
-  windows:
+  portable-windows:
     runs-on: windows-latest
     permissions:
       contents: read
@@ -20,17 +21,35 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Instalar dependencias
+      - name: Instalar dependencias del compilador (solo en GitHub)
         run: python -m pip install -r requirements-desktop.txt
-      - name: Verificar codigo y pruebas
+      - name: Comprobar código y pruebas
         run: |
-          python -m compileall -q depurador
+          python -m compileall -q depurador desktop_launcher.py
           python -m pytest -q
-      - name: Compilar ejecutable
+      - name: Empaquetar todo en un EXE sin instalador
         run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name DepuradorPDF desktop_launcher.py
+      - name: Probar el ejecutable compilado
+        shell: pwsh
+        run: |
+          $destino = Join-Path $env:RUNNER_TEMP "autoprueba-portable.json"
+          & .\dist\DepuradorPDF.exe --portable-self-test $destino
+          if ($LASTEXITCODE -ne 0 -or -not (Test-Path $destino)) {
+            throw "El EXE no terminó correctamente la autoprueba"
+          }
+          $salida = Get-Content $destino -Raw | ConvertFrom-Json
+          if (-not $salida.correcto) {
+            throw "Falló la extracción PDF dentro del ejecutable portable"
+          }
+      - name: Crear carpeta portable para descargar
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force "portable" | Out-Null
+          Copy-Item "dist\DepuradorPDF.exe" "portable\DepuradorPDF.exe"
+          Copy-Item "docs\LEEME-PORTABLE.txt" "portable\LEEME.txt"
       - uses: actions/upload-artifact@v4
         with:
-          name: DepuradorPDF-Windows
-          path: dist/DepuradorPDF.exe
+          name: DepuradorPDF-Portable-Windows
+          path: portable/
           if-no-files-found: error
           retention-days: 30
