@@ -8,7 +8,7 @@
 </head>
 <body>
 <header><div class="contenedor cabecera"><div><h1>Depurador de PDF</h1>
-<p>Gmail → Extracción Python → Google Sheets · Servidor interno</p></div>
+<p>{{ proveedor }} → Extracción Python → Google Sheets · Servidor interno</p></div>
 <form method="post" action="{{ url_for('salir') }}">
 <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
 <button class="secundario" type="submit">Cerrar sesión</button>
@@ -18,16 +18,16 @@
 <div class="aviso {{ categoria }}">{{ mensaje }}</div>
 {% endfor %}
 <section class="panel">
-<div class="titulo-seccion"><h2>1. Buscar correos con PDF</h2><span class="etiqueta">Gmail</span></div>
+<div class="titulo-seccion"><h2>1. Buscar correos con PDF</h2><span class="etiqueta">{{ proveedor }}</span></div>
 <form method="post" action="{{ url_for('buscar') }}" class="busqueda">
 <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-<label for="filtro">Filtro de búsqueda en Gmail</label>
+<label for="filtro">Filtro de búsqueda en {{ proveedor }}</label>
 <div class="fila">
 <input id="filtro" name="filtro" maxlength="500" value="{{ filtro }}" required>
 <button type="submit">Buscar correos</button>
 </div>
 </form>
-<p class="nota">Busque por remitente, asunto o fecha. Solo se muestran mensajes que tienen PDF adjuntos. No se descargan los documentos durante la búsqueda.</p>
+<p class="nota">Busque por remitente, asunto o texto. Para Outlook puede escribir from:correo@empresa.com o subject:reporte. Solo se muestran mensajes que contienen archivos PDF adjuntos. No se descargan los documentos durante la búsqueda.</p>
 </section>
 <section class="panel">
 <div class="titulo-seccion"><h2>2. Seleccionar correo específico</h2><span class="etiqueta">{{ correos|length }} encontrados</span></div>

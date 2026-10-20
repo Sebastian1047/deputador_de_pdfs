@@ -27,6 +27,7 @@ def entorno(tmp_path, monkeypatch):
         "ADMIN_USER": "analista",
         "ADMIN_PASSWORD_HASH": generate_password_hash("contrasena-muy-segura"),
         "SESSION_COOKIE_SECURE": False,
+        "MAIL_PROVIDER": "gmail",
         "PDF_FIELDS_FILE": str(reglas),
         "GOOGLE_SPREADSHEET_ID": "spreadsheet-demo",
     }, service_factory=ServiciosFalsos())

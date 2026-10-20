@@ -1,3 +1,5 @@
 -r requirements.txt
 Flask>=3.1,<4
 waitress>=3.0,<4
+msal>=1.30,<2
+requests>=2.32,<3

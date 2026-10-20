@@ -16,7 +16,8 @@ from flask import Flask, abort, flash, redirect, render_template, request, sessi
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from .core import leer_campos, procesar
-from .proveedores import GmailMensajeSeleccionado, GmailReader, GoogleSheetsWriter, crear_servicios_google
+from .proveedores import GmailMensajeSeleccionado, GmailReader, GoogleSheetsWriter, crear_servicios_google, crear_servicio_google_sheets
+from .outlook import OutlookMensajeSeleccionado, OutlookReader, crear_cliente_outlook
 
 LOG = logging.getLogger(__name__)
 CONSULTA = "has:attachment filename:pdf newer_than:30d"
@@ -40,6 +41,9 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
         PERMANENT_SESSION_LIFETIME=timedelta(hours=8),
         MAX_CONTENT_LENGTH=16 * 1024,
         GMAIL_QUERY=os.getenv("GMAIL_QUERY") or CONSULTA,
+        MAIL_PROVIDER=(os.getenv("MAIL_PROVIDER") or "outlook").lower(),
+        MAILBOX=os.getenv("MS_MAILBOX") or "",
+        OUTLOOK_QUERY=os.getenv("OUTLOOK_QUERY") or "hasAttachments:true",
         MAX_EMAILS=min(250, max(1, int(os.getenv("MAX_EMAILS") or "100"))),
         GOOGLE_SPREADSHEET_ID=os.getenv("GOOGLE_SPREADSHEET_ID", ""),
         GOOGLE_SHEET_TAB=os.getenv("GOOGLE_SHEET_TAB") or "Registros",
@@ -52,7 +56,20 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
     if not app.config.get("TESTING"):
         if len(app.config["SECRET_KEY"]) < 32 or not app.config["ADMIN_PASSWORD_HASH"]:
             raise RuntimeError("Configure WEB_SECRET_KEY y WEB_PASSWORD_HASH en el servidor")
-    servicios = service_factory or crear_servicios_google
+    if app.config["MAIL_PROVIDER"] not in ("outlook", "gmail"):
+        raise ValueError("MAIL_PROVIDER debe ser outlook o gmail")
+
+    def servicios_web():
+        if app.config["MAIL_PROVIDER"] == "outlook":
+            return crear_cliente_outlook(), crear_servicio_google_sheets()
+        return crear_servicios_google()
+
+    servicios = service_factory or servicios_web
+
+    def nuevo_lector(cliente, filtro, cantidad):
+        if app.config["MAIL_PROVIDER"] == "outlook":
+            return OutlookReader(cliente, app.config["MAILBOX"], filtro, cantidad)
+        return GmailReader(cliente, filtro, cantidad)
     cache: dict[str, dict] = {}
     estados: dict[str, dict] = {}
     mutex = threading.Lock()
@@ -147,7 +164,11 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
         return render_template(
             "inicio.html",
             correos=seleccion["correos"] if seleccion else [],
-            filtro=seleccion["filtro"] if seleccion else app.config["GMAIL_QUERY"],
+            filtro=seleccion["filtro"] if seleccion else (
+                app.config["OUTLOOK_QUERY"] if app.config["MAIL_PROVIDER"] == "outlook"
+                else app.config["GMAIL_QUERY"]
+            ),
+            proveedor="Outlook empresarial" if app.config["MAIL_PROVIDER"] == "outlook" else "Gmail",
             estado=estado,
             configurado=bool(app.config["GOOGLE_SPREADSHEET_ID"]),
         )
@@ -157,15 +178,15 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
     def buscar():
         filtro = (request.form.get("filtro") or "").strip()
         if not filtro or len(filtro) > 500:
-            flash("Introduzca un filtro de Gmail válido (máximo 500 caracteres).", "error")
+            flash("Introduzca un filtro válido (máximo 500 caracteres).", "error")
             return redirect(url_for("inicio"))
         sid = session["sid"]
         with mutex:
             cache.pop(sid, None)
         try:
-            gmail, _ = servicios()
-            correos = GmailReader(
-                gmail, filtro, app.config["MAX_EMAILS"]
+            correo_cliente, _ = servicios()
+            correos = nuevo_lector(
+                correo_cliente, filtro, app.config["MAX_EMAILS"]
             ).listar_correos()
             # En memoria, vinculados a la sesión; no se almacenan correos en disco.
             with mutex:
@@ -181,16 +202,19 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
             if not correos:
                 flash("No se encontraron correos con PDF.", "info")
         except Exception as exc:
-            LOG.warning("Fallo en búsqueda Gmail: %s", type(exc).__name__)
-            flash("No fue posible consultar Gmail. Revise conexión y permisos.", "error")
+            LOG.warning("Fallo en búsqueda de correo: %s", type(exc).__name__)
+            flash("No fue posible consultar el correo. Revise conexión y permisos.", "error")
         return redirect(url_for("inicio"))
 
     def ejecutar_proceso(sid: str, id_correo: str):
         try:
             campos = _reglas(app.config["PDF_FIELDS_FILE"])
-            gmail, sheets = servicios()
-            lector = GmailReader(gmail, app.config["GMAIL_QUERY"])
-            origen = GmailMensajeSeleccionado(lector, id_correo)
+            cliente, sheets = servicios()
+            lector = nuevo_lector(cliente, "", app.config["MAX_EMAILS"])
+            if app.config["MAIL_PROVIDER"] == "outlook":
+                origen = OutlookMensajeSeleccionado(lector, id_correo)
+            else:
+                origen = GmailMensajeSeleccionado(lector, id_correo)
             destino = GoogleSheetsWriter(
                 sheets,
                 app.config["GOOGLE_SPREADSHEET_ID"],

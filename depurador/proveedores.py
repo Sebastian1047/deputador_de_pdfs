@@ -201,3 +201,23 @@ def crear_servicios_google():
     gmail = build("gmail", "v1", credentials=credenciales, cache_discovery=False)
     sheets = build("sheets", "v4", credentials=credenciales, cache_discovery=False)
     return gmail, sheets
+
+
+def crear_servicio_google_sheets():
+    """Solo Sheets: no solicitar permisos Gmail para leer correos Outlook."""
+    from google.oauth2.credentials import Credentials
+    from googleapiclient.discovery import build
+
+    requeridas = ("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REFRESH_TOKEN")
+    faltan = [variable for variable in requeridas if not os.getenv(variable)]
+    if faltan:
+        raise RuntimeError("Faltan variables Google Sheets: " + ", ".join(faltan))
+    credenciales = Credentials(
+        token=None,
+        refresh_token=os.environ["GOOGLE_REFRESH_TOKEN"],
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id=os.environ["GOOGLE_CLIENT_ID"],
+        client_secret=os.environ["GOOGLE_CLIENT_SECRET"],
+        scopes=["https://www.googleapis.com/auth/spreadsheets"],
+    )
+    return build("sheets", "v4", credentials=credenciales, cache_discovery=False)
