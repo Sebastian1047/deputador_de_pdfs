@@ -66,7 +66,7 @@ class GraphExcelFile:
         metadata = r.json()
         if not str(metadata.get("name", "")).lower().endswith(".xlsx"):
             raise ValueError("El destino debe ser un libro Excel .xlsx")
-        if not metadata.get("file"):
+        if "file" not in metadata:
             raise ValueError("El elemento seleccionado no es un archivo")
         if int(metadata.get("size") or 0) > MAX_XLSX_BYTES:
             raise ValueError("Excel supera el tamaño permitido (20 MiB)")

@@ -8,7 +8,7 @@
 </head>
 <body>
 <header><div class="contenedor cabecera"><div><h1>Depurador de PDF</h1>
-<p>{{ proveedor }} → Extracción Python → Google Sheets · Servidor interno</p></div>
+<p>{{ proveedor }} → Extracción Python → {{ destino_nombre }} · Servidor interno</p></div>
 <form method="post" action="{{ url_for('salir') }}">
 <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
 <button class="secundario" type="submit">Cerrar sesión</button>

@@ -1,2 +1,2 @@
-"""Motor compartido para web y escritorio."""
-__version__ = "0.4.0"
+"""Motor compartido entre web y escritorio en pausa."""
+__version__ = "0.5.0"

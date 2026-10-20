@@ -18,6 +18,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from .core import leer_campos, procesar
 from .proveedores import GmailMensajeSeleccionado, GmailReader, GoogleSheetsWriter, crear_servicios_google, crear_servicio_google_sheets
 from .outlook import OutlookMensajeSeleccionado, OutlookReader, crear_cliente_outlook
+from .excel_online import ExcelOnlineWriter, GraphExcelFile
 
 LOG = logging.getLogger(__name__)
 CONSULTA = "has:attachment filename:pdf newer_than:30d"
@@ -42,6 +43,10 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
         MAX_CONTENT_LENGTH=16 * 1024,
         GMAIL_QUERY=os.getenv("GMAIL_QUERY") or CONSULTA,
         MAIL_PROVIDER=(os.getenv("MAIL_PROVIDER") or "outlook").lower(),
+        TABLE_PROVIDER=(os.getenv("TABLE_PROVIDER") or "excel_online").lower(),
+        MS_EXCEL_DRIVE_ID=os.getenv("MS_EXCEL_DRIVE_ID") or "",
+        MS_EXCEL_ITEM_ID=os.getenv("MS_EXCEL_ITEM_ID") or "",
+        MS_EXCEL_SHEET=os.getenv("MS_EXCEL_SHEET") or "Registros",
         MAILBOX=os.getenv("MS_MAILBOX") or "",
         OUTLOOK_QUERY=os.getenv("OUTLOOK_QUERY") or "hasAttachments:true",
         MAX_EMAILS=min(250, max(1, int(os.getenv("MAX_EMAILS") or "100"))),
@@ -58,10 +63,17 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
             raise RuntimeError("Configure WEB_SECRET_KEY y WEB_PASSWORD_HASH en el servidor")
     if app.config["MAIL_PROVIDER"] not in ("outlook", "gmail"):
         raise ValueError("MAIL_PROVIDER debe ser outlook o gmail")
+    if app.config["TABLE_PROVIDER"] not in ("excel_online", "google_sheets"):
+        raise ValueError("TABLE_PROVIDER debe ser excel_online o google_sheets")
+    if app.config["TABLE_PROVIDER"] == "excel_online" and app.config["MAIL_PROVIDER"] != "outlook":
+        raise ValueError("Excel Online requiere la identidad de Microsoft configurada con Outlook")
 
     def servicios_web():
         if app.config["MAIL_PROVIDER"] == "outlook":
-            return crear_cliente_outlook(), crear_servicio_google_sheets()
+            cliente = crear_cliente_outlook()
+            if app.config["TABLE_PROVIDER"] == "excel_online":
+                return cliente, cliente
+            return cliente, crear_servicio_google_sheets()
         return crear_servicios_google()
 
     servicios = service_factory or servicios_web
@@ -170,7 +182,11 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
             ),
             proveedor="Outlook empresarial" if app.config["MAIL_PROVIDER"] == "outlook" else "Gmail",
             estado=estado,
-            configurado=bool(app.config["GOOGLE_SPREADSHEET_ID"]),
+            configurado=(bool(app.config["MS_EXCEL_DRIVE_ID"] and app.config["MS_EXCEL_ITEM_ID"])
+                         if app.config["TABLE_PROVIDER"] == "excel_online"
+                         else bool(app.config["GOOGLE_SPREADSHEET_ID"])),
+            destino_nombre=("Excel Online" if app.config["TABLE_PROVIDER"] == "excel_online"
+                            else "Google Sheets"),
         )
 
     @app.post("/buscar")
@@ -209,18 +225,20 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
     def ejecutar_proceso(sid: str, id_correo: str):
         try:
             campos = _reglas(app.config["PDF_FIELDS_FILE"])
-            cliente, sheets = servicios()
+            cliente, destino_cliente = servicios()
             lector = nuevo_lector(cliente, "", app.config["MAX_EMAILS"])
             if app.config["MAIL_PROVIDER"] == "outlook":
                 origen = OutlookMensajeSeleccionado(lector, id_correo)
             else:
                 origen = GmailMensajeSeleccionado(lector, id_correo)
-            destino = GoogleSheetsWriter(
-                sheets,
-                app.config["GOOGLE_SPREADSHEET_ID"],
-                app.config["GOOGLE_SHEET_TAB"],
-            )
+            if app.config["TABLE_PROVIDER"] == "excel_online":
+                archivo = GraphExcelFile(destino_cliente, app.config["MS_EXCEL_DRIVE_ID"], app.config["MS_EXCEL_ITEM_ID"])
+                destino = ExcelOnlineWriter(archivo, app.config["MS_EXCEL_SHEET"])
+            else:
+                destino = GoogleSheetsWriter(destino_cliente, app.config["GOOGLE_SPREADSHEET_ID"], app.config["GOOGLE_SHEET_TAB"])
             resumen = procesar(origen, destino, campos)
+            if app.config["TABLE_PROVIDER"] == "excel_online":
+                destino.finalizar()  # Solo se reporta éxito si el Excel se guardó correctamente.
             with mutex:
                 estados[sid] = {
                     "estado": "terminado" if not resumen["errores"] else "parcial",
@@ -241,8 +259,12 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
         actual = seleccion_actual(sid)
         if not actual or id_correo not in {v["id"] for v in actual["correos"]}:
             abort(400, description="Seleccione primero un correo de la lista vigente")
-        if not app.config["GOOGLE_SPREADSHEET_ID"]:
-            flash("Falta configurar Google Sheets en el servidor.", "error")
+        if app.config["TABLE_PROVIDER"] == "excel_online":
+            configurado = bool(app.config["MS_EXCEL_DRIVE_ID"] and app.config["MS_EXCEL_ITEM_ID"])
+        else:
+            configurado = bool(app.config["GOOGLE_SPREADSHEET_ID"])
+        if not configurado:
+            flash("Falta configurar el Excel Online de destino en el servidor.", "error")
             return redirect(url_for("inicio"))
         try:
             if not _reglas(app.config["PDF_FIELDS_FILE"]):
