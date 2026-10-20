@@ -85,6 +85,7 @@ class GraphExcelFile:
             or not (
                 hostname.endswith(".sharepoint.com")
                 or hostname.endswith(".sharepointonline.com")
+                or hostname.endswith(".1drv.com")
             )
             or parsed.username
             or parsed.password
@@ -173,6 +174,8 @@ class ExcelOnlineWriter:
     def agregar(self, clave: str, fecha_utc: str, datos: Sequence[str]) -> None:
         if self.ws is None:
             raise RuntimeError("Se debe leer el libro antes de insertar filas")
+        if len(datos) != self.ancho - 2:
+            raise ValueError("Cantidad de valores distinta a las columnas del Excel")
         def texto(valor: object) -> str:
             valor = str(valor)
             # No evaluar fórmulas derivadas de PDF o mensajes externos.
@@ -216,3 +219,39 @@ def crear_excel_online(graph_client):
         ),
         os.getenv("MS_EXCEL_SHEET") or "Registros",
     )
+
+
+def resolver_ubicacion_onedrive(graph_client, propietario: str, ruta: str) -> tuple[str, str]:
+    """Obtiene driveId e itemId usando propietario y ruta relativos a su OneDrive."""
+    propietario = propietario.strip()
+    if (
+        not propietario or len(propietario) > 254 or "@" not in propietario
+        or any(c in propietario for c in ("/", "\\", "?", "#", " ", "%"))
+    ):
+        raise ValueError("MS_ONEDRIVE_OWNER debe ser una cuenta empresarial válida")
+    ruta = ruta.strip().strip("/")
+    partes = ruta.split("/")
+    if (
+        not ruta or len(ruta) > 700 or not ruta.lower().endswith(".xlsx")
+        or any(p in ("", ".", "..") or "\\" in p or "\x00" in p for p in partes)
+    ):
+        raise ValueError("MS_ONEDRIVE_PATH debe apuntar a un archivo .xlsx válido")
+    propietario_encoded = quote(propietario, safe="")
+    archivo_encoded = "/".join(quote(parte, safe="") for parte in partes)
+    url = f"{GRAPH}/users/{propietario_encoded}/drive/root:/{archivo_encoded}:"
+    meta = graph_client.get(url)
+    if not isinstance(meta, dict) or "file" not in meta:
+        raise ValueError("La ubicación en OneDrive no corresponde a un archivo")
+    if not str(meta.get("name", "")).lower().endswith(".xlsx"):
+        raise ValueError("El archivo de destino debe ser .xlsx")
+    drive_id = (meta.get("parentReference") or {}).get("driveId")
+    item_id = meta.get("id")
+    _id_valido(str(drive_id or ""), "drive")
+    _id_valido(str(item_id or ""), "item")
+    return str(drive_id), str(item_id)
+
+
+def crear_excel_desde_onedrive(graph_client, propietario: str, ruta: str,
+                              hoja: str = "Registros"):
+    drive_id, item_id = resolver_ubicacion_onedrive(graph_client, propietario, ruta)
+    return ExcelOnlineWriter(GraphExcelFile(graph_client, drive_id, item_id), hoja)
