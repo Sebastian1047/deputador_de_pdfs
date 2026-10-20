@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+dist/
+build/
+*.spec
+*.exe
+# Datos y credenciales que nunca deben subirse
+token*.json
+client_secret*.json
+credentials*.json
+*.pdf
+*.xlsx
+*.xls
+.env

@@ -1,0 +1,36 @@
+name: Compilar escritorio Windows
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'depurador/**'
+      - 'desktop_launcher.py'
+      - 'requirements*.txt'
+      - 'tests/**'
+      - '.github/workflows/escritorio.yml'
+jobs:
+  windows:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Instalar dependencias
+        run: python -m pip install -r requirements-desktop.txt
+      - name: Verificar codigo y pruebas
+        run: |
+          python -m compileall -q depurador
+          python -m pytest -q
+      - name: Compilar ejecutable
+        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name DepuradorPDF desktop_launcher.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DepuradorPDF-Windows
+          path: dist/DepuradorPDF.exe
+          if-no-files-found: error
+          retention-days: 30

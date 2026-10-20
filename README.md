@@ -1,4 +1,4 @@
-# Depurador de PDF · Python (v0.1.0)
+# Depurador de PDF · Python (v0.2.0)
 
 Aplicación para extraer campos de muchos PDF adjuntos a mensajes de correo, **sin descargarlos manualmente**, y escribir los resultados en una hoja de cálculo en la nube. El proyecto usa inicialmente **Gmail + Google Sheets (en Drive)**, con adaptadores para reemplazarlos luego por las herramientas del cliente.
 
@@ -67,3 +67,35 @@ Para cambiar el correo/tabla se implementan nuevos adaptadores y se actualiza la
 - La idempotencia usa la clave `document_key` de cada adjunto en Sheets; no elimina duplicados si se reenvía el mismo PDF como adjunto de otro mensaje.
 - El procesamiento depende de OAuth/consentimiento real, límites de APIs y permisos de acceso. No se ha ejecutado una integración real.
 - Esta página web no ejecuta Python desde el navegador ni muestra datos privados; para una consola operativa con autenticación habrá que definir un backend o servicio compatible.
+
+
+## Versión de escritorio Windows — v0.2.0
+
+La aplicación de escritorio con Tkinter utiliza el mismo motor Python que la versión web. Tiene botones para probar con PDF ficticio, conectar Gmail/Sheets, editar las reglas para extraer campos y procesar los correos.
+
+### Obtener el ejecutable (.exe) desde GitHub
+
+1. Abra https://github.com/Sebastian1047/deputador_de_pdfs/actions/workflows/escritorio.yml
+2. Seleccione una ejecución exitosa (o lance Run workflow).
+3. Descargue el artefacto llamado DepuradorPDF-Windows y descomprima el archivo ZIP.
+4. Ejecute DepuradorPDF.exe en Windows. No necesita instalar Python.
+
+También puede iniciar la ventana desde el código fuente con:
+
+    pip install -r requirements-desktop.txt
+    python -m depurador.escritorio
+
+### Configuración en el portátil
+
+1. Pulse **Probar sin conexión**. El sistema crea un PDF ficticio en memoria y simula una fila.
+2. Para conectarse a Gmail/Google Sheets reales, cree un proyecto Google Cloud, habilite Gmail API y Google Sheets API, y descargue un archivo OAuth Client ID de tipo **Desktop app** (JSON). Nunca lo suba a GitHub.
+3. Pulse **Elegir JSON** y **Conectar Google**. El navegador pedirá consentimiento del usuario autorizado.
+4. Ingrese ID o URL de Google Sheets, nombre de pestaña y consulta Gmail.
+5. En **Campos de los PDF**, edite/importa reglas JSON según el documento real que vamos a estudiar.
+6. Pulse **Procesar ahora**. El programa no guarda los PDFs en disco, solo envía los campos a la hoja.
+
+Las preferencias y reglas se guardan en el perfil local de usuario: %APPDATA%\DepuradorPDF en Windows. El token de Google se guarda por separado como token_google.json en esa misma carpeta. No se almacena en el código ni el ejecutable. Proteja el perfil del equipo. Hace falta conexión a Internet para procesar correo y escribir en Google Sheets.
+
+**Limitaciones:** se necesita un PDF de ejemplo para definir las reglas, y credenciales OAuth válidas para comprobar la integración real. La aplicación web alojada con GitHub Pages muestra un panel informativo, pero es GitHub Actions quien ejecuta el código privado en la nube. Hay que habilitar Pages en Settings > Pages desde /docs para publicar ese panel. Evitar iniciar web y escritorio al mismo tiempo contra la misma hoja hasta añadir un bloqueo de concurrencia. PyInstaller genera el EXE en un runner de Windows. El EXE no está firmado digitalmente y puede requerir aprobación por políticas de seguridad del equipo.
+
+Cuando el cliente elija otros proveedores (por ejemplo Outlook y Microsoft Excel en OneDrive), se podrán escribir nuevos conectores conservando depurador/core.py y las reglas de extracción. Una hoja Google Sheets alojada en Drive no es lo mismo que un archivo Excel .xlsx.
