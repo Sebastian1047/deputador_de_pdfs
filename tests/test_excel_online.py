@@ -142,3 +142,65 @@ def test_graph_no_acepta_una_descarga_fuera_de_sharepoint():
     graph = type("Graph", (), {"auth": AuthSimulado(), "http": http})()
     with pytest.raises(ValueError, match="segura"):
         GraphExcelFile(graph, "drive001", "item001").leer()
+
+
+
+def test_onedrive_empresa_busca_excel_por_propietario_y_ruta():
+    from depurador.excel_online import resolver_ubicacion_onedrive
+
+    class ClienteFalso:
+        def __init__(self):
+            self.url = None
+        def get(self, url):
+            self.url = url
+            return {"id": "01AB123", "name": "Informe 2026.xlsx",
+                    "file": {}, "parentReference": {"driveId": "b!UnDrive"}}
+
+    cliente = ClienteFalso()
+    resultado = resolver_ubicacion_onedrive(
+        cliente, "informes@empresa.com", "Consolidado/Informe 2026.xlsx"
+    )
+    assert resultado == ("b!UnDrive", "01AB123")
+    assert "/users/informes%40empresa.com/drive/root:/Consolidado/Informe%202026.xlsx:" in cliente.url
+
+
+@pytest.mark.parametrize("ruta", [
+    "../archivo.xlsx", "Carpeta/../archivo.xlsx", "Carpeta//archivo.xlsx",
+    r"Carpeta\archivo.xlsx", "Carpeta/archivo.pdf", "",
+])
+def test_onedrive_rechaza_rutas_no_validas_antes_de_graph(ruta):
+    from depurador.excel_online import resolver_ubicacion_onedrive
+
+    class NoConsultar:
+        def get(self, url):
+            raise AssertionError("No debería comunicarse con Graph")
+    with pytest.raises(ValueError, match="MS_ONEDRIVE_PATH"):
+        resolver_ubicacion_onedrive(NoConsultar(), "informes@empresa.com", ruta)
+
+
+def test_excel_rechaza_campos_de_longitud_equivocada():
+    archivo = ArchivoSimulado()
+    destino = ExcelOnlineWriter(archivo)
+    destino.claves_existentes([Campo("numero", "numero")])
+    with pytest.raises(ValueError, match="Cantidad"):
+        destino.agregar("uno", "2026-10-20", ["100", "sobrante"])
+
+
+def test_descarga_1drv_com_sin_enviar_token_bearer():
+    http = HttpSimulado()
+    get_original = http.get
+
+    def falso_get(url, **kwargs):
+        if "graph.microsoft.com" in url:
+            metadata = get_original(url, **kwargs).json()
+            metadata["@microsoft.graph.downloadUrl"] = "https://a.files.1drv.com/descarga"
+            return Respuesta(200, metadata)
+        assert url == "https://a.files.1drv.com/descarga"
+        assert "Authorization" not in kwargs.get("headers", {})
+        return Respuesta(200, http.datos)
+
+    http.get = falso_get
+    graph = type("Graph", (), {"auth": AuthSimulado(), "http": http})()
+    datos, version = GraphExcelFile(graph, "b!drive", "item1").leer()
+    assert datos.startswith(b"PK")
+    assert version == '"v1"'

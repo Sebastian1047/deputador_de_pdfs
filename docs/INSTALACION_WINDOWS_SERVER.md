@@ -92,3 +92,15 @@ Entrar a la URL corporativa segura > acceder con usuario autorizado > buscar men
 - Si Excel está guardado en OneDrive Empresarial o SharePoint.
 - Un PDF de ejemplo anonimizado y las columnas que desea extraer.
 - Revisión de TI del acceso a Graph, de la seguridad del archivo y del despliegue IIS/Windows Server.
+
+## Configuración simplificada para OneDrive empresarial (versión 0.5.1)
+
+En lugar de buscar los IDs de drive e item, TI puede configurar la ruta del libro usando:
+
+- `MS_ONEDRIVE_OWNER`: cuenta dueña del OneDrive empresarial, por ejemplo `informes@empresa.com`.
+- `MS_ONEDRIVE_PATH`: ruta relativa al OneDrive de ese propietario, por ejemplo `Informes/2026/Reporte consolidado.xlsx`.
+- `MS_EXCEL_SHEET`: pestaña de destino, por defecto `Registros`.
+
+El servidor resuelve esos valores mediante `GET /users/{upn}/drive/root:/{ruta}:` para identificar el archivo y después utiliza la misma implementación de descarga, comparación de versión eTag y subida condicionada. Se pueden mantener alternativamente `MS_EXCEL_DRIVE_ID` y `MS_EXCEL_ITEM_ID` proporcionados por TI. Cuando ambas configuraciones existen, tiene prioridad propietario+ruta.
+
+**Advertencia:** la dirección debe ser la del **propietario real** del OneDrive. Si el libro aparece solamente en «Compartido conmigo», la ruta del destinatario podría no resolver el documento. En ese caso TI debe obtener los IDs de la unidad y el archivo donde esté realmente almacenado. La empresa debe aprobar los permisos de Microsoft Graph y realizar pruebas en una copia del Excel, especialmente ante ediciones concurrentes, formatos avanzados y etiquetas de sensibilidad.

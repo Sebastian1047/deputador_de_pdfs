@@ -1,4 +1,4 @@
-# Depurador de PDF · v0.5.0
+# Depurador de PDF · v0.5.1
 
 **Aplicación web Python para Windows Server**. El usuario inicia sesión en el navegador de la empresa, busca correos en Outlook empresarial, escoge un correo específico, procesa sus PDF adjuntos **en memoria** y agrega datos a **Excel Online** en Microsoft 365.
 
@@ -34,3 +34,6 @@ TI publica la interfaz **solo en la intranet con IIS y HTTPS**. Los usuarios no 
 El servidor del cliente no se ha configurado. Falta confirmar si Outlook utiliza Exchange Online y dónde se guarda exactamente el Excel (.xlsx): OneDrive o SharePoint. También necesitamos un PDF anonimizado para definir los campos y una prueba con una copia del libro real.
 
 **Limitación de Excel Online:** la API de Microsoft Graph para agregar filas directamente a un libro no admite permisos exclusivos de aplicación; el conector actual descarga y sustituye un .xlsx completo tras verificar versión, por lo que no debe utilizarse con libros complejos o en edición simultánea sin pruebas. Se conservan Gmail y Google Sheets solo como conectores alternativos de desarrollo, sin ser el destino principal.
+
+
+**OneDrive empresarial:** puede configurarse el propietario (`MS_ONEDRIVE_OWNER`) y la ruta relativa (`MS_ONEDRIVE_PATH`) del `.xlsx`. Si TI ya conoce los identificadores, sigue disponible `MS_EXCEL_DRIVE_ID` y `MS_EXCEL_ITEM_ID`. Consulte la guía de Windows Server para requisitos y seguridad.
