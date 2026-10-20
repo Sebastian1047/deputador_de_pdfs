@@ -3,6 +3,9 @@ from __future__ import annotations
 
 import base64
 import os
+import re
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Iterable, Sequence
 
 from .core import AdjuntoPDF, Campo
@@ -20,13 +23,30 @@ def _decodificar(cadena: str) -> bytes:
     return base64.urlsafe_b64decode(cadena + "=" * (-len(cadena) % 4))
 
 
+@dataclass(frozen=True)
+class CorreoResumen:
+    """Metadatos visibles solo en la aplicación local; no descarga adjuntos."""
+    id: str
+    fecha: str
+    remitente: str
+    asunto: str
+    cantidad_pdf: int
+
+
+def _es_pdf(parte: dict) -> bool:
+    nombre = parte.get("filename", "")
+    tipo = parte.get("mimeType", "")
+    return nombre.lower().endswith(".pdf") or tipo == "application/pdf"
+
+
 class GmailReader:
     def __init__(self, servicio, consulta: str, max_correos: int = 250):
         self.servicio = servicio
         self.consulta = consulta
         self.max_correos = max_correos
 
-    def adjuntos_pdf(self) -> Iterable[AdjuntoPDF]:
+    def _referencias(self) -> Iterable[str]:
+        """Buscar IDs sin descargar adjuntos, respetando el filtro y el límite."""
         mensajes = self.servicio.users().messages()
         vistos = 0
         pagina = None
@@ -38,34 +58,86 @@ class GmailReader:
             if pagina:
                 argumentos["pageToken"] = pagina
             listado = mensajes.list(**argumentos).execute()
-            for referencia in listado.get("messages", []):
+            referencias = listado.get("messages", [])
+            if not referencias:
+                break
+            for referencia in referencias:
                 vistos += 1
-                identificador = referencia["id"]
-                detalle = mensajes.get(userId="me", id=identificador, format="full").execute()
-                for indice, parte in enumerate(_partes_recursivas(detalle.get("payload", {}))):
-                    nombre = parte.get("filename", "")
-                    tipo = parte.get("mimeType", "")
-                    if not (nombre.lower().endswith(".pdf") or tipo == "application/pdf"):
-                        continue
-                    cuerpo = parte.get("body", {})
-                    if cuerpo.get("data"):
-                        datos = cuerpo["data"]
-                    elif cuerpo.get("attachmentId"):
-                        respuesta = mensajes.attachments().get(
-                            userId="me", messageId=identificador, id=cuerpo["attachmentId"]
-                        ).execute()
-                        datos = respuesta.get("data", "")
-                    else:
-                        continue
-                    contenido = _decodificar(datos)
-                    if not contenido.startswith(b"%PDF"):
-                        continue
-                    clave = f"gmail:{identificador}:{parte.get('partId', indice)}"
-                    yield AdjuntoPDF(clave=clave, contenido=contenido)
+                yield referencia["id"]
             pagina = listado.get("nextPageToken")
             if not pagina:
                 break
 
+    def listar_correos(self) -> list[CorreoResumen]:
+        """Mostrar mensajes con PDF en la bandeja, sin bajar ningún archivo."""
+        mensajes = self.servicio.users().messages()
+        resultado = []
+        for identificador in self._referencias():
+            mensaje = mensajes.get(userId="me", id=identificador, format="full").execute()
+            payload = mensaje.get("payload", {})
+            cantidad = sum(_es_pdf(parte) for parte in _partes_recursivas(payload))
+            if not cantidad:
+                continue
+            cabeceras = {
+                h.get("name", "").lower(): h.get("value", "")
+                for h in payload.get("headers", [])
+            }
+            try:
+                sello = int(mensaje.get("internalDate", 0)) / 1000
+                fecha = datetime.fromtimestamp(sello, tz=timezone.utc).astimezone().strftime("%d/%m/%Y %H:%M")
+            except (OverflowError, OSError, TypeError, ValueError):
+                fecha = "Sin fecha"
+            resultado.append(CorreoResumen(
+                id=identificador,
+                fecha=fecha,
+                remitente=cabeceras.get("from", "Desconocido")[:140],
+                asunto=cabeceras.get("subject", "(Sin asunto)")[:250],
+                cantidad_pdf=cantidad,
+            ))
+        return resultado
+
+    def adjuntos_pdf(self, mensaje_id: str | None = None) -> Iterable[AdjuntoPDF]:
+        """Si se entrega mensaje_id, procesa SOLO ese mensaje, nunca la búsqueda entera."""
+        mensajes = self.servicio.users().messages()
+        if mensaje_id is not None:
+            if not re.fullmatch(r"[A-Za-z0-9]+", mensaje_id):
+                raise ValueError("Identificador de Gmail inválido")
+            identificadores = [mensaje_id]
+        else:
+            identificadores = self._referencias()
+
+        for identificador in identificadores:
+            detalle = mensajes.get(userId="me", id=identificador, format="full").execute()
+            for indice, parte in enumerate(_partes_recursivas(detalle.get("payload", {}))):
+                if not _es_pdf(parte):
+                    continue
+                cuerpo = parte.get("body", {})
+                if cuerpo.get("data"):
+                    datos = cuerpo["data"]
+                elif cuerpo.get("attachmentId"):
+                    respuesta = mensajes.attachments().get(
+                        userId="me", messageId=identificador, id=cuerpo["attachmentId"]
+                    ).execute()
+                    datos = respuesta.get("data", "")
+                else:
+                    continue
+                contenido = _decodificar(datos)
+                if not contenido.startswith(b"%PDF"):
+                    continue
+                clave = f"gmail:{identificador}:{parte.get('partId', indice)}"
+                yield AdjuntoPDF(clave=clave, contenido=contenido)
+
+
+class GmailMensajeSeleccionado:
+    """Fuente segura para la versión escritorio: un correo previamente elegido."""
+    def __init__(self, lector: GmailReader, mensaje_id: str):
+        if not re.fullmatch(r"[A-Za-z0-9]+", mensaje_id):
+            raise ValueError("Seleccione un correo válido")
+        self.lector = lector
+        self.mensaje_id = mensaje_id
+
+    def adjuntos_pdf(self) -> Iterable[AdjuntoPDF]:
+        return self.lector.adjuntos_pdf(mensaje_id=self.mensaje_id)
 
 class GoogleSheetsWriter:
     """Escribe en una hoja NATIVA de Google Sheets ubicada en Drive."""
