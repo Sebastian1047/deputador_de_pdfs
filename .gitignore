@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# Credenciales y datos privados
+credentials.json
+token.json
+secrets/
+*.pem
+*.key
+
+# Archivos de trabajo
+*.pdf
+*.xlsx
+*.xls
