@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+{% if estado.estado == 'procesando' %}<meta http-equiv="refresh" content="5">{% endif %}
+<title>Correos y PDF | Depurador de PDF</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+<header><div class="contenedor cabecera"><div><h1>Depurador de PDF</h1>
+<p>Gmail → Extracción Python → Google Sheets · Servidor interno</p></div>
+<form method="post" action="{{ url_for('salir') }}">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<button class="secundario" type="submit">Cerrar sesión</button>
+</form></div></header>
+<main class="contenedor">
+{% for categoria, mensaje in get_flashed_messages(with_categories=true) %}
+<div class="aviso {{ categoria }}">{{ mensaje }}</div>
+{% endfor %}
+<section class="panel">
+<div class="titulo-seccion"><h2>1. Buscar correos con PDF</h2><span class="etiqueta">Gmail</span></div>
+<form method="post" action="{{ url_for('buscar') }}" class="busqueda">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<label for="filtro">Filtro de búsqueda en Gmail</label>
+<div class="fila">
+<input id="filtro" name="filtro" maxlength="500" value="{{ filtro }}" required>
+<button type="submit">Buscar correos</button>
+</div>
+</form>
+<p class="nota">Busque por remitente, asunto o fecha. Solo se muestran mensajes que tienen PDF adjuntos. No se descargan los documentos durante la búsqueda.</p>
+</section>
+<section class="panel">
+<div class="titulo-seccion"><h2>2. Seleccionar correo específico</h2><span class="etiqueta">{{ correos|length }} encontrados</span></div>
+{% if correos %}
+<div class="tabla-scroll"><table>
+<thead><tr><th>Elegir</th><th>Fecha</th><th>Remitente</th><th>Asunto</th><th>PDF</th></tr></thead>
+<tbody>{% for correo in correos %}
+<tr>
+<td><form method="post" action="{{ url_for('procesar_seleccionado') }}" class="form-procesar">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<input type="hidden" name="mensaje_id" value="{{ correo.id }}">
+<button type="submit" {% if estado.estado == 'procesando' or not configurado %}disabled{% endif %}>Procesar</button>
+</form></td>
+<td>{{ correo.fecha }}</td>
+<td>{{ correo.remitente }}</td><td>{{ correo.asunto }}</td>
+<td class="cantidad">{{ correo.pdf }}</td>
+</tr>{% endfor %}</tbody>
+</table></div>
+<p class="nota">Cada botón procesa solo los PDF del correo de esa fila. Los datos ya registrados se omiten.</p>
+{% else %}
+<p class="vacio">Primero pulse «Buscar correos» para visualizar y seleccionar un mensaje.</p>
+{% endif %}
+</section>
+<section class="panel">
+<h2>3. Estado del procesamiento</h2>
+{% if estado.estado == 'procesando' %}
+<div class="aviso info">Procesando PDF. Esta página se actualiza cada 5 segundos. No inicie otra operación.</div>
+{% elif estado.estado == 'terminado' or estado.estado == 'parcial' %}
+<div class="aviso {{ 'exito' if estado.estado == 'terminado' else 'error' }}">
+{{ 'Procesamiento terminado' if estado.estado == 'terminado' else 'Procesamiento con errores' }}.
+</div>
+<div class="resumen">
+<div><span>PDF encontrados</span><strong>{{ estado.resumen.encontrados }}</strong></div>
+<div><span>Agregados</span><strong>{{ estado.resumen.agregados }}</strong></div>
+<div><span>Duplicados</span><strong>{{ estado.resumen.duplicados }}</strong></div>
+<div><span>Errores</span><strong>{{ estado.resumen.errores }}</strong></div>
+</div>
+{% elif estado.estado == 'error' %}
+<div class="aviso error">No se pudo completar el procesamiento. Pida a TI revisar la configuración o los registros del servicio.</div>
+{% else %}
+<p class="vacio">Todavía no ha procesado un correo desde esta sesión.</p>
+{% endif %}
+{% if not configurado %}<p class="nota">Pendiente: configurar el ID de la hoja Google Sheets en el servidor.</p>{% endif %}
+</section>
+<footer>Servidor local · Uso interno · No subir archivos PDF ni contraseñas al repositorio público.</footer>
+</main>
+</body>
+</html>

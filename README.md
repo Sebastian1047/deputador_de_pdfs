@@ -1,4 +1,4 @@
-# Depurador de PDF · Python (v0.3.2)
+# Depurador de PDF · Python (v0.4.0)
 
 Aplicación para extraer campos de muchos PDF adjuntos a mensajes de correo, **sin descargarlos manualmente**, y escribir los resultados en una hoja de cálculo en la nube. El proyecto usa inicialmente **Gmail + Google Sheets (en Drive)**, con adaptadores para reemplazarlos luego por las herramientas del cliente.
 
@@ -109,3 +109,70 @@ Las preferencias y reglas se guardan en el perfil local de usuario: %APPDATA%\De
 **Limitaciones:** se necesita un PDF de ejemplo para definir las reglas, y credenciales OAuth válidas para comprobar la integración real. La aplicación web alojada con GitHub Pages muestra un panel informativo, pero es GitHub Actions quien ejecuta el código privado en la nube. Hay que habilitar Pages en Settings > Pages desde /docs para publicar ese panel. Evitar iniciar web y escritorio al mismo tiempo contra la misma hoja hasta añadir un bloqueo de concurrencia. PyInstaller genera el EXE en un runner de Windows. El EXE no está firmado digitalmente y puede requerir aprobación por políticas de seguridad del equipo.
 
 Cuando el cliente elija otros proveedores (por ejemplo Outlook y Microsoft Excel en OneDrive), se podrán escribir nuevos conectores conservando depurador/core.py y las reglas de extracción. Una hoja Google Sheets alojada en Drive no es lo mismo que un archivo Excel .xlsx.
+
+
+## Aplicación web en el servidor LOCAL de la empresa — versión 0.4.0
+
+**Nueva arquitectura:** GitHub conserva el código, pero ya **no procesa correos ni PDF mediante GitHub Actions**. La empresa ejecutará su propio servidor Python con Flask y Waitress. **La versión escritorio está en pausa**: el código permanece, pero no se compila automáticamente en cada push.
+
+### Características del panel interno
+
+- Acceso por usuario y contraseña con contraseñas almacenadas como hash, sesión de 8 horas, protección CSRF y bloqueo temporal de intentos fallidos.
+- Busca mensajes Gmail por filtro configurable y muestra fecha, remitente, asunto y cantidad de PDF sin descargar adjuntos.
+- El usuario pulsa **Procesar** en la fila del correo específico que desea. La selección solo es válida si el correo pertenece a la lista consultada de su sesión.
+- Extrae datos de todos los PDF de ese mensaje **en memoria**, evita duplicados por clave de adjunto e inserta registros en Google Sheets. No modifica ni elimina mensajes Gmail.
+- Procesa en segundo plano, con un solo trabajo simultáneo y resumen de PDF procesados, repetidos y fallidos. El resumen es temporal (solo vive en memoria mientras funcione el servicio).
+
+### Preparación en el servidor corporativo
+
+Requisitos: Python 3.11+ y permiso de TI para instalar dependencias y mantener un servicio ejecutándose en el servidor. Puede utilizarse Windows Server o Linux. La ruta de instalación debe ser accesible únicamente a TI. No hay obligación de instalar software en cada portátil: los usuarios ingresan desde su navegador a la dirección interna autorizada.
+
+1. Obtener el proyecto mediante clonación o un ZIP de la rama main y entrar a su carpeta.
+2. Crear un entorno virtual Python en el servidor y ejecutar:
+
+       python -m pip install -r requirements-web.txt
+       python -m pytest -q
+
+3. Generar una contraseña robusta (mínimo 12 caracteres) para el administrador:
+
+       python -m depurador.web --hash-password
+
+   El comando pide la contraseña sin mostrarla y devuelve un hash. **No guardar la contraseña ni el hash en GitHub.**
+4. Configurar las siguientes variables de entorno **en el servidor**, gestionadas por TI:
+
+   | Variable | Uso |
+   | --- | --- |
+   | WEB_SECRET_KEY | Valor aleatorio de 32 caracteres o más, secreto |
+   | WEB_ADMIN_USER | Nombre del usuario autorizado |
+   | WEB_PASSWORD_HASH | Resultado del comando anterior |
+   | GOOGLE_CLIENT_ID | ID OAuth del proyecto autorizado |
+   | GOOGLE_CLIENT_SECRET | Secreto OAuth del proyecto autorizado |
+   | GOOGLE_REFRESH_TOKEN | Token de renovación con consentimiento del dueño |
+   | GOOGLE_SPREADSHEET_ID | ID de hoja **nativa** Google Sheets |
+   | GOOGLE_SHEET_TAB | Pestaña (por defecto Registros) |
+   | GMAIL_QUERY | Filtro predeterminado, por ejemplo remitente y PDF |
+   | PDF_FIELDS_FILE | Ruta absoluta al JSON de campos (opcional; por defecto config/campos.json) |
+   | WEB_HOST | Por defecto 127.0.0.1 (solo loopback) |
+   | WEB_PORT | Por defecto 8080 |
+   | WEB_SECURE_COOKIES | true para HTTPS (por defecto) |
+
+5. Configurar **config/campos.json** con los campos reales cuando tengamos un PDF de ejemplo. El archivo actualmente está vacío a propósito; evita escribir datos equivocados.
+6. Iniciar el servidor con:
+
+       python -m depurador.web
+
+   El proceso debe permanecer activo. Para producción, TI debe configurarlo como servicio de Windows o systemd en Linux, con reinicio automático, usuario de mínimos privilegios y registros adecuados.
+7. TI debe instalar y configurar **un proxy inverso con HTTPS** (por ejemplo IIS, Nginx o Caddy), protegido por red corporativa/VPN, que reenvíe al servidor en 127.0.0.1:8080. No publicar Waitress directamente a Internet ni operar credenciales sobre HTTP. Mantener WEB_SECURE_COOKIES=true en HTTPS. Evitar enviar tráfico del cliente por páginas públicas de GitHub.
+8. Desde un navegador autorizado en la red de la empresa abrir la dirección interna definida por TI, iniciar sesión, buscar, elegir un correo y pulsar Procesar.
+
+**Prueba local sin proxy:** solo para TI, en el mismo servidor y sin exponer a la LAN, se puede usar WEB_SECURE_COOKIES=false con WEB_HOST=127.0.0.1 y http://127.0.0.1:8080. **Nunca** usar HTTP para acceso remoto con credenciales reales.
+
+### Seguridad, límites y tareas pendientes
+
+- Los datos del correo se muestran únicamente tras autenticar. Las listas quedan en RAM por 15 minutos; jamás en GitHub ni en GitHub Pages.
+- El proyecto y los workflows de CI permanecen públicos: **no subir PDF reales, secretos, archivos de datos ni información identificable**. Los PDF no se guardan en el servidor, se procesan en memoria. El servidor necesita conexión **saliente** a las APIs autorizadas de Google; estar alojado en la LAN no elimina esa dependencia.
+- Las cuentas, políticas OAuth, configuración de proxy HTTPS, copias de seguridad y permisos de empresa requieren acompañamiento del equipo de TI.
+- Para uso con más de un usuario concurrente, se recomienda posteriormente añadir autenticación corporativa (SSO/AD) y persistencia segura de procesos. En la fase actual hay un único usuario administrador y un proceso Python que admite varias peticiones.
+- El mecanismo de deduplicación sigue basado en el ID de adjunto Gmail: si reenvían el mismo PDF como un nuevo mensaje, podría repetirse.
+- Si algún documento es escaneado (imagen), hará falta OCR. Necesitamos un PDF de ejemplo anonimizado y las columnas objetivo.
+- La herramienta de escritorio no fue eliminada; simplemente quedó en pausa. El workflow de escritorio solo corre si TI/desarrollo lo inicia manualmente.

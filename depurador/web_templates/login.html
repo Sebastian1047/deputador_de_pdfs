@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Acceso interno | Depurador de PDF</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+<header><div class="contenedor"><h1>Depurador de PDF</h1><p>Aplicación web para la red interna de la empresa</p></div></header>
+<main class="contenedor acceso">
+<section class="panel">
+<h2>Iniciar sesión</h2>
+<p>Esta aplicación permite consultar correos y escribir registros en Google Sheets. Acceso autorizado únicamente.</p>
+{% for categoria, mensaje in get_flashed_messages(with_categories=true) %}
+<div class="aviso {{ categoria }}">{{ mensaje }}</div>
+{% endfor %}
+<form action="{{ url_for('login') }}" method="post">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<label for="usuario">Usuario</label>
+<input id="usuario" name="usuario" autocomplete="username" required>
+<label for="clave">Contraseña</label>
+<input id="clave" type="password" name="clave" autocomplete="current-password" required>
+<button type="submit">Entrar</button>
+</form>
+</section>
+</main>
+</body>
+</html>

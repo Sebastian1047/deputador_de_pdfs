@@ -22,11 +22,11 @@ p,li{line-height:1.55;color:#516d5d}a.button{display:inline-block;background:#14
 <section class="card">
 <span class="tag">Versión web</span>
 <h2>Automatización en la nube</h2>
-<p>GitHub Actions revisa los correos de Gmail, procesa PDF en memoria y registra datos en Google Sheets. La página es un panel informativo, no expone registros privados.</p>
-<a class="button" href="https://github.com/Sebastian1047/deputador_de_pdfs/actions/workflows/procesar.yml">Ver automatizaciones ↗</a>
+<p>La aplicación operativa corre en el servidor interno de la empresa. GitHub solo guarda el código; esta página pública es informativa y no contiene correos.</p>
+<a class="button" href="https://github.com/Sebastian1047/deputador_de_pdfs/blob/main/depurador/web.py">Ver código del servidor ↗</a>
 </section>
 <section class="card">
-<span class="tag">Versión escritorio · Windows</span>
+<span class="tag">Escritorio · En pausa</span>
 <h2>Aplicación para portátil</h2>
 <p>Archivo portátil para Windows que abre con doble clic, sin instalar Python. Permite buscar correos con PDF, seleccionar un mensaje y procesar únicamente sus adjuntos. Las credenciales se guardan localmente y no se incluyen en el programa.</p>
 <a class="button" href="https://github.com/Sebastian1047/deputador_de_pdfs/actions/workflows/escritorio.yml">Obtener EXE portable para Windows ↗</a>
@@ -34,10 +34,10 @@ p,li{line-height:1.55;color:#516d5d}a.button{display:inline-block;background:#14
 </div>
 <section class="card notice">
 <h2>Estado del proyecto</h2>
-<p>Motor y adaptadores creados. Falta autorizar el correo, elegir la hoja de destino y definir exactamente los datos a extraer a partir de un PDF de ejemplo. La versión web no ejecuta Python en el navegador: el procesamiento ocurre en GitHub Actions.</p>
-<p class="muted">Para obtener un ejecutable, abra una compilación exitosa en GitHub Actions y descargue el artefacto «DepuradorPDF-Portable-Windows». Los archivos de datos y credenciales no deben guardarse en este repositorio público.</p>
+<p>Motor y adaptadores creados. Falta autorizar el correo, elegir la hoja de destino y definir exactamente los datos a extraer a partir de un PDF de ejemplo. El navegador accede al servidor interno Python. Falta la instalación por TI y la configuración de Gmail, Sheets y campos reales.</p>
+<p class="muted">El servidor Python y el panel de operación estarán dentro de la red empresarial. GitHub Pages es únicamente una página informativa; ningún correo o PDF real se muestra aquí.</p>
 </section>
 </main>
-<footer>Versión 0.3.2 · Código compartido web/escritorio · Sin servidor propio</footer>
+<footer>Versión 0.4.0 · Código compartido web/escritorio · Sin servidor propio</footer>
 </body>
 </html>

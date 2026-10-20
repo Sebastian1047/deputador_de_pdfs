@@ -1,0 +1,25 @@
+:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#183b2c;background:#f2f6f3;line-height:1.45}
+*{box-sizing:border-box}body{margin:0}header{background:#0e503a;color:#fff;padding:22px 0}
+header h1{margin:0;font-size:25px}header p{margin:4px 0 0;color:#c9e3d5}
+.contenedor{max-width:1120px;margin:auto;padding:0 22px}.cabecera{display:flex;gap:12px;align-items:center;justify-content:space-between}
+main{padding-top:24px!important;padding-bottom:30px!important}
+.panel{background:#fff;border:1px solid #dce8df;border-radius:14px;padding:23px;margin:0 0 18px;box-shadow:0 2px 8px #153b2910}
+.panel h2{margin:0 0 13px;font-size:19px}.titulo-seccion{display:flex;gap:12px;justify-content:space-between;align-items:center}
+.etiqueta{background:#e4f2e9;color:#16573d;border-radius:18px;padding:5px 11px;font-size:12px;white-space:nowrap}
+label{display:block;font-weight:600;margin:8px 0 5px;font-size:14px}
+input{width:100%;min-width:0;border:1px solid #b9cfc2;border-radius:8px;padding:10px;font:inherit;background:#fff;color:#182d23}
+button{background:#136247;color:white;border:0;border-radius:8px;padding:10px 15px;cursor:pointer;font-weight:600;white-space:nowrap}
+button:hover{background:#0b4b35}button:disabled{background:#b6c3ba;cursor:not-allowed}
+button.secundario{background:#dceee4;color:#174c37}.fila{display:flex;gap:9px}
+.nota,footer,.vacio{color:#667d70;font-size:13px}.vacio{padding:12px;background:#f5f8f6;border-radius:8px}
+.tabla-scroll{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:680px}
+th{text-align:left;background:#edf5ef;color:#345847}td,th{border-bottom:1px solid #e4ede6;padding:12px 9px;vertical-align:middle;font-size:13px}
+tbody tr:hover{background:#f5faf7}.cantidad{text-align:center;font-weight:700}
+.form-procesar{margin:0}.form-procesar button{font-size:12px;padding:8px 11px}
+.aviso{padding:12px 14px;border-radius:8px;margin:12px 0}
+.aviso.error{background:#fcebea;color:#8a281e}.aviso.exito{background:#e5f6eb;color:#145b36}
+.aviso.info{background:#e5f1fa;color:#1f5978}.resumen{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.resumen>div{background:#edf5ef;border-radius:9px;text-align:center;padding:15px 6px}
+.resumen span{display:block;font-size:12px;color:#5a7765}.resumen strong{display:block;font-size:26px}
+.acceso{max-width:510px}.acceso .panel{margin-top:36px}.acceso input{margin-bottom:12px}.acceso button{width:100%;margin-top:5px}
+@media(max-width:600px){.fila{flex-direction:column}.cabecera{align-items:flex-start}.resumen{grid-template-columns:repeat(2,minmax(0,1fr))}header h1{font-size:22px}.panel{padding:16px}}

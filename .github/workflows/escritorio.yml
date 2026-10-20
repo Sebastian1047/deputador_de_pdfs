@@ -1,15 +1,6 @@
 name: Compilar escritorio Windows portable
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'depurador/**'
-      - 'desktop_launcher.py'
-      - 'requirements*.txt'
-      - 'tests/**'
-      - 'docs/LEEME-PORTABLE.txt'
-      - '.github/workflows/escritorio.yml'
 jobs:
   portable-windows:
     runs-on: windows-latest
