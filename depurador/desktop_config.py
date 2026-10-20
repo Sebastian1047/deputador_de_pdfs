@@ -56,6 +56,9 @@ def validar_reglas(contenido: str):
     datos = json.loads(contenido)
     if not isinstance(datos, dict) or not isinstance(datos.get("campos"), list):
         raise ValueError('Las reglas deben contener una lista llamada "campos"')
+    for indice, item in enumerate(datos["campos"], start=1):
+        if not isinstance(item, dict) or not isinstance(item.get("nombre"), str) or not isinstance(item.get("patron"), str):
+            raise ValueError(f"El campo {indice} necesita nombre y patron de texto")
     return leer_campos(datos)
 
 

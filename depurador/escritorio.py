@@ -280,7 +280,8 @@ class Escritorio:
                 resultado, detalle = _prueba_local()
             else:
                 credenciales = autenticar(
-                    config["json"], self.carpeta / "token_google.json"
+                    config["json"], self.carpeta / "token_google.json",
+                    cambiar_cuenta=(operacion == "conectar"),
                 )
                 if operacion == "conectar":
                     resultado, detalle = None, "Cuenta de Google autorizada en este portátil."
