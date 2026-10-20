@@ -1,4 +1,4 @@
-# Depurador de PDF · Python (v0.3.1)
+# Depurador de PDF · Python (v0.3.2)
 
 Aplicación para extraer campos de muchos PDF adjuntos a mensajes de correo, **sin descargarlos manualmente**, y escribir los resultados en una hoja de cálculo en la nube. El proyecto usa inicialmente **Gmail + Google Sheets (en Drive)**, con adaptadores para reemplazarlos luego por las herramientas del cliente.
 
@@ -19,7 +19,7 @@ Se necesita Python 3.11+.
 
 ```bash
 pip install -r requirements.txt
-pytest -q
+python -m pytest -q
 python -m depurador --demo
 ```
 
@@ -69,7 +69,7 @@ Para cambiar el correo/tabla se implementan nuevos adaptadores y se actualiza la
 - Esta página web no ejecuta Python desde el navegador ni muestra datos privados; para una consola operativa con autenticación habrá que definir un backend o servicio compatible.
 
 
-## Versión de escritorio Windows — v0.3.1
+## Versión de escritorio Windows — v0.3.2
 
 La aplicación de escritorio con Tkinter utiliza el mismo motor Python que la versión web. Tiene botones para probar con PDF ficticio, conectar Gmail/Sheets, buscar correos que tienen PDF, seleccionar un único mensaje de la lista, editar las reglas y procesar solamente los adjuntos de ese correo.
 

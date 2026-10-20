@@ -15,5 +15,5 @@ jobs:
           python-version: '3.12'
       - run: pip install -r requirements.txt
       - run: python -m compileall -q depurador
-      - run: pytest -q
+      - run: python -m pytest -q
       - run: python -m depurador --demo

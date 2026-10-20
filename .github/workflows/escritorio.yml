@@ -33,9 +33,12 @@ jobs:
         shell: pwsh
         run: |
           $destino = Join-Path $env:RUNNER_TEMP "autoprueba-portable.json"
-          & .\dist\DepuradorPDF.exe --portable-self-test $destino
-          if ($LASTEXITCODE -ne 0 -or -not (Test-Path $destino)) {
-            throw "El EXE no terminó correctamente la autoprueba"
+          # Los .exe con --windowed se abren de forma asíncrona en PowerShell.
+          # -Wait garantiza que el resultado se comprueba SOLO después de finalizar.
+          $ejecutable = (Resolve-Path ".\dist\DepuradorPDF.exe").Path
+          $proceso = Start-Process -FilePath $ejecutable -ArgumentList @("--portable-self-test", $destino) -Wait -PassThru
+          if ($proceso.ExitCode -ne 0 -or -not (Test-Path $destino)) {
+            throw "El EXE no terminó correctamente la autoprueba (código $($proceso.ExitCode))"
           }
           $salida = Get-Content $destino -Raw | ConvertFrom-Json
           if (-not $salida.correcto) {
