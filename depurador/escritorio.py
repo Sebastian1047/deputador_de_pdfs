@@ -121,20 +121,20 @@ class Escritorio:
         self.estado = tk.StringVar(value="Listo para probar con datos ficticios.")
 
         self._campo(ejecucion, "Filtro de Gmail", self.consulta, 0)
-        self._campo(ejecucion, "ID o URL de Google Sheets (Drive)", self.hoja, 1)
-        self._campo(ejecucion, "Nombre de la pestaña del documento", self.pestana, 2)
+        self._campo(ejecucion, "ID o URL de Google Sheets (Drive)", self.hoja, 2)
+        self._campo(ejecucion, "Nombre de la pestaña del documento", self.pestana, 4)
 
         ttk.Label(ejecucion, text="Archivo OAuth de Google Cloud (JSON)").grid(
-            row=3, column=0, sticky="w", pady=(9, 2)
+            row=6, column=0, sticky="w", pady=(9, 2)
         )
         archivo = ttk.Frame(ejecucion)
-        archivo.grid(row=4, column=0, sticky="ew")
+        archivo.grid(row=7, column=0, sticky="ew")
         ttk.Entry(archivo, textvariable=self.json_cliente).pack(side="left", fill="x", expand=True)
         ttk.Button(archivo, text="Elegir JSON", command=self._buscar_json).pack(side="left", padx=(8, 0))
-        self._campo(ejecucion, "Máximo de correos por ejecución", self.cantidad, 5)
+        self._campo(ejecucion, "Máximo de correos por ejecución", self.cantidad, 8)
 
         operaciones = ttk.Frame(ejecucion)
-        operaciones.grid(row=7, column=0, sticky="ew", pady=(17, 5))
+        operaciones.grid(row=10, column=0, sticky="ew", pady=(17, 5))
         self.boton_demo = ttk.Button(
             operaciones, text="Probar sin conexión", command=lambda: self._iniciar("demo")
         )
@@ -150,17 +150,17 @@ class Escritorio:
         self.boton_procesar.pack(side="left")
 
         estado = ttk.Label(ejecucion, textvariable=self.estado, foreground=SUAVE, wraplength=730)
-        estado.grid(row=8, column=0, sticky="w", pady=(9, 8))
+        estado.grid(row=11, column=0, sticky="w", pady=(9, 8))
         self.salida = tk.Text(
             ejecucion, height=7, state="disabled", relief="flat",
             bg="#e6f0e9", fg=TEXTO, font=("Consolas", 10),
             padx=12, pady=10, wrap="word"
         )
-        self.salida.grid(row=9, column=0, sticky="nsew")
+        self.salida.grid(row=12, column=0, sticky="nsew")
         ejecucion.columnconfigure(0, weight=1)
-        ejecucion.rowconfigure(9, weight=1)
+        ejecucion.rowconfigure(12, weight=1)
         ttk.Label(ejecucion, text="Los PDF se leen en memoria; no se descargan a carpetas.").grid(
-            row=10, column=0, sticky="w", pady=(9, 0)
+            row=13, column=0, sticky="w", pady=(9, 0)
         )
 
         ttk.Label(
@@ -188,11 +188,11 @@ class Escritorio:
     def _campo(self, marco, etiqueta, variable, fila):
         # Las filas se numeran explícitamente para mantener alineadas las entradas.
         ttk.Label(marco, text=etiqueta).grid(
-            row=fila * 2 if fila <= 2 else fila + 1,
+            row=fila,
             column=0, sticky="w", pady=(8, 2)
         )
         ttk.Entry(marco, textvariable=variable).grid(
-            row=fila * 2 + 1 if fila <= 2 else fila + 2,
+            row=fila + 1,
             column=0, sticky="ew"
         )
 
