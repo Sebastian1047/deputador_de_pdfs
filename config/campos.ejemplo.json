@@ -1,0 +1,14 @@
+{
+  "campos": [
+    {
+      "nombre": "numero_documento",
+      "patron": "Documento:\\s*([A-Z0-9-]+)",
+      "obligatorio": true
+    },
+    {
+      "nombre": "fecha",
+      "patron": "Fecha:\\s*(\\d{2}/\\d{2}/\\d{4})",
+      "obligatorio": false
+    }
+  ]
+}
