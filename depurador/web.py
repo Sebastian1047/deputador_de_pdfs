@@ -18,7 +18,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from .core import leer_campos, procesar
 from .proveedores import GmailMensajeSeleccionado, GmailReader, GoogleSheetsWriter, crear_servicios_google, crear_servicio_google_sheets
 from .outlook import OutlookMensajeSeleccionado, OutlookReader, crear_cliente_outlook
-from .excel_online import ExcelOnlineWriter, GraphExcelFile
+from .excel_online import ExcelOnlineWriter, GraphExcelFile, crear_excel_desde_onedrive
 
 LOG = logging.getLogger(__name__)
 CONSULTA = "has:attachment filename:pdf newer_than:30d"
@@ -47,6 +47,8 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
         MS_EXCEL_DRIVE_ID=os.getenv("MS_EXCEL_DRIVE_ID") or "",
         MS_EXCEL_ITEM_ID=os.getenv("MS_EXCEL_ITEM_ID") or "",
         MS_EXCEL_SHEET=os.getenv("MS_EXCEL_SHEET") or "Registros",
+        MS_ONEDRIVE_OWNER=os.getenv("MS_ONEDRIVE_OWNER") or "",
+        MS_ONEDRIVE_PATH=os.getenv("MS_ONEDRIVE_PATH") or "",
         MAILBOX=os.getenv("MS_MAILBOX") or "",
         OUTLOOK_QUERY=os.getenv("OUTLOOK_QUERY") or "hasAttachments:true",
         MAX_EMAILS=min(250, max(1, int(os.getenv("MAX_EMAILS") or "100"))),
@@ -182,7 +184,7 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
             ),
             proveedor="Outlook empresarial" if app.config["MAIL_PROVIDER"] == "outlook" else "Gmail",
             estado=estado,
-            configurado=(bool(app.config["MS_EXCEL_DRIVE_ID"] and app.config["MS_EXCEL_ITEM_ID"])
+            configurado=(bool((app.config["MS_ONEDRIVE_OWNER"] and app.config["MS_ONEDRIVE_PATH"]) or (app.config["MS_EXCEL_DRIVE_ID"] and app.config["MS_EXCEL_ITEM_ID"]))
                          if app.config["TABLE_PROVIDER"] == "excel_online"
                          else bool(app.config["GOOGLE_SPREADSHEET_ID"])),
             destino_nombre=("Excel Online" if app.config["TABLE_PROVIDER"] == "excel_online"
@@ -232,8 +234,17 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
             else:
                 origen = GmailMensajeSeleccionado(lector, id_correo)
             if app.config["TABLE_PROVIDER"] == "excel_online":
-                archivo = GraphExcelFile(destino_cliente, app.config["MS_EXCEL_DRIVE_ID"], app.config["MS_EXCEL_ITEM_ID"])
-                destino = ExcelOnlineWriter(archivo, app.config["MS_EXCEL_SHEET"])
+                if app.config["MS_ONEDRIVE_OWNER"] and app.config["MS_ONEDRIVE_PATH"]:
+                    destino = crear_excel_desde_onedrive(
+                        destino_cliente,
+                        app.config["MS_ONEDRIVE_OWNER"], app.config["MS_ONEDRIVE_PATH"],
+                        app.config["MS_EXCEL_SHEET"],
+                    )
+                else:
+                    archivo = GraphExcelFile(
+                        destino_cliente, app.config["MS_EXCEL_DRIVE_ID"], app.config["MS_EXCEL_ITEM_ID"]
+                    )
+                    destino = ExcelOnlineWriter(archivo, app.config["MS_EXCEL_SHEET"])
             else:
                 destino = GoogleSheetsWriter(destino_cliente, app.config["GOOGLE_SPREADSHEET_ID"], app.config["GOOGLE_SHEET_TAB"])
             resumen = procesar(origen, destino, campos)
@@ -260,7 +271,7 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
         if not actual or id_correo not in {v["id"] for v in actual["correos"]}:
             abort(400, description="Seleccione primero un correo de la lista vigente")
         if app.config["TABLE_PROVIDER"] == "excel_online":
-            configurado = bool(app.config["MS_EXCEL_DRIVE_ID"] and app.config["MS_EXCEL_ITEM_ID"])
+            configurado = bool((app.config["MS_ONEDRIVE_OWNER"] and app.config["MS_ONEDRIVE_PATH"]) or (app.config["MS_EXCEL_DRIVE_ID"] and app.config["MS_EXCEL_ITEM_ID"]))
         else:
             configurado = bool(app.config["GOOGLE_SPREADSHEET_ID"])
         if not configurado:
