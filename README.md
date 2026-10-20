@@ -1,4 +1,4 @@
-# Depurador de PDF · v0.5.1
+# Depurador de PDF · v0.5.2
 
 **Aplicación web Python para Windows Server**. El usuario inicia sesión en el navegador de la empresa, busca correos en Outlook empresarial, escoge un correo específico, procesa sus PDF adjuntos **en memoria** y agrega datos a **Excel Online** en Microsoft 365.
 
@@ -37,3 +37,16 @@ El servidor del cliente no se ha configurado. Falta confirmar si Outlook utiliza
 
 
 **OneDrive empresarial:** puede configurarse el propietario (`MS_ONEDRIVE_OWNER`) y la ruta relativa (`MS_ONEDRIVE_PATH`) del `.xlsx`. Si TI ya conoce los identificadores, sigue disponible `MS_EXCEL_DRIVE_ID` y `MS_EXCEL_ITEM_ID`. Consulte la guía de Windows Server para requisitos y seguridad.
+
+
+## Vista demostrativa desde el navegador (v0.5.2)
+
+La ruta `docs/index.html` contiene una **demo interactiva, independiente del servidor**: lista correos ficticios, permite buscar y seleccionar uno, simula el procesamiento de PDF y muestra filas de ejemplo como si se hubieran registrado en Excel Online. **No consulta Outlook, no descarga PDF reales y no escribe en OneDrive**.
+
+- Vista provisional desde los archivos de GitHub (a través de un visualizador HTML externo): https://raw.githack.com/Sebastian1047/deputador_de_pdfs/main/docs/index.html
+- El visualizador externo puede mostrar una pantalla de confirmación. No coloque datos privados en esa página: es una demo pública.
+- Enlace oficial previsto de GitHub Pages, cuando esté habilitado: https://sebastian1047.github.io/deputador_de_pdfs/
+
+Para activar la URL oficial, un administrador del repositorio debe ir a **GitHub → Settings → Pages → Build and deployment → Source: Deploy from a branch → Branch: main → Folder: /docs → Save**. Puede tardar unos minutos en publicar.
+
+**Importante:** GitHub Pages y el visualizador externo sirven solo archivos estáticos. La aplicación web que realmente lee Outlook y edita Excel se ejecutará en **Windows Server interno** y no se expone a Internet desde GitHub.
