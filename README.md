@@ -1,4 +1,4 @@
-# Depurador de PDF · Python (v0.2.0)
+# Depurador de PDF · Python (v0.3.0)
 
 Aplicación para extraer campos de muchos PDF adjuntos a mensajes de correo, **sin descargarlos manualmente**, y escribir los resultados en una hoja de cálculo en la nube. El proyecto usa inicialmente **Gmail + Google Sheets (en Drive)**, con adaptadores para reemplazarlos luego por las herramientas del cliente.
 
@@ -69,9 +69,9 @@ Para cambiar el correo/tabla se implementan nuevos adaptadores y se actualiza la
 - Esta página web no ejecuta Python desde el navegador ni muestra datos privados; para una consola operativa con autenticación habrá que definir un backend o servicio compatible.
 
 
-## Versión de escritorio Windows — v0.2.0
+## Versión de escritorio Windows — v0.3.0
 
-La aplicación de escritorio con Tkinter utiliza el mismo motor Python que la versión web. Tiene botones para probar con PDF ficticio, conectar Gmail/Sheets, editar las reglas para extraer campos y procesar los correos.
+La aplicación de escritorio con Tkinter utiliza el mismo motor Python que la versión web. Tiene botones para probar con PDF ficticio, conectar Gmail/Sheets, buscar correos que tienen PDF, seleccionar un único mensaje de la lista, editar las reglas y procesar solamente los adjuntos de ese correo.
 
 ### Obtener el ejecutable (.exe) desde GitHub
 
@@ -92,7 +92,12 @@ También puede iniciar la ventana desde el código fuente con:
 3. Pulse **Elegir JSON** y **Conectar Google**. El navegador pedirá consentimiento del usuario autorizado.
 4. Ingrese ID o URL de Google Sheets, nombre de pestaña y consulta Gmail.
 5. En **Campos de los PDF**, edite/importa reglas JSON según el documento real que vamos a estudiar.
-6. Pulse **Procesar ahora**. El programa no guarda los PDFs en disco, solo envía los campos a la hoja.
+6. Regrese a **1. Seleccionar correo** y use el buscador de Gmail (remitente, asunto, fecha, etc.). Pulse **Buscar correos**. Se muestran fecha, remitente, asunto y cantidad de archivos PDF por mensaje.
+7. Haga clic en **un solo correo** de la lista. El botón **Procesar correo seleccionado** se habilita únicamente cuando existe una selección válida. Confirme antes de guardar filas en Google Sheets.
+8. Se descargan los adjuntos del mensaje elegido únicamente a memoria RAM (no a carpetas) y se envían los campos extraídos a la hoja. Ningún otro mensaje es procesado en este modo.
+9. Si cambia el filtro, debe hacer una nueva búsqueda y selección. No se permite procesar toda la bandeja desde el botón de escritorio; se repiten los pasos para otro correo.
+
+Nota: la versión web mediante GitHub Actions conserva su procesamiento automático por consulta, sin necesidad de selección manual. Se previenen registros repetidos cuando vuelve a elegir el mismo adjunto, mediante la clave de Gmail en la hoja.
 
 Las preferencias y reglas se guardan en el perfil local de usuario: %APPDATA%\DepuradorPDF en Windows. El token de Google se guarda por separado como token_google.json en esa misma carpeta. No se almacena en el código ni el ejecutable. Proteja el perfil del equipo. Hace falta conexión a Internet para procesar correo y escribir en Google Sheets.
 
