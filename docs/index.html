@@ -1,1 +1,277 @@
-<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Depurador PDF</title><body style="font-family:system-ui;max-width:720px;margin:3em auto;padding:1em"><h1>Depurador PDF</h1><p>La aplicación privada funciona en el servidor Windows de la empresa. No está alojada en GitHub Pages.</p><p>Fuente: <a href="https://github.com/Sebastian1047/deputador_de_pdfs">repositorio GitHub</a>.</p></body></html>
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Depurador de PDF | Vista demostrativa</title>
+<style>
+:root{font-family:Inter,"Segoe UI",system-ui,-apple-system,sans-serif;background:#f3f6f4;color:#18392d;line-height:1.4}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh}button,input{font:inherit}button{cursor:pointer}
+.topbar{background:#174f3a;color:#fff;padding:15px 0;box-shadow:0 3px 12px #174f3a18}
+.wrap{max-width:1230px;margin:auto;padding:0 28px}
+.header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.logo{display:flex;align-items:center;gap:12px}
+.mark{display:grid;place-items:center;width:43px;height:43px;border-radius:12px;background:#ffffff22;font-weight:900;font-size:20px}
+.logo h1{font-size:20px;line-height:1.2;margin:0}.logo span{font-size:12px;color:#d3e6da}
+.headright{display:flex;align-items:center;gap:10px}
+.hbadge{background:#d7eedd;color:#174f3a;font-size:12px;font-weight:750;border-radius:50px;padding:8px 12px}
+.ghost{color:white;border:1px solid #ffffff65;background:transparent;border-radius:9px;padding:9px 14px}
+main{padding-top:25px!important;padding-bottom:36px!important}
+.notice{display:flex;align-items:flex-start;gap:12px;border:1px solid #ead9a8;background:#fff9e6;border-radius:13px;padding:14px 17px;margin-bottom:22px}
+.notice svg{flex-shrink:0;color:#a36e05}.notice strong{display:block;margin-bottom:2px;color:#755310}.notice p{margin:0;font-size:13px;color:#7a662f}
+.heading h2{font-size:26px;letter-spacing:-.6px;margin:0 0 3px}.heading p{color:#64786c;margin:0 0 20px;font-size:14px}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:22px}
+.metric{background:white;border:1px solid #e2eae5;border-radius:13px;padding:16px 18px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;box-shadow:0 2px 12px #1c44320a}
+.metric small{font-size:12px;color:#64776b}.metric b{font-size:27px;font-weight:750;display:block;margin-top:8px;line-height:1.1}
+.metric-icon{display:grid;place-items:center;width:37px;height:37px;border-radius:10px;background:#e8f4eb;color:#237d50}
+.metric.warn .metric-icon{background:#fef1e4;color:#b07127}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:19px;align-items:start}
+.card{background:white;border:1px solid #e0e9e2;border-radius:15px;overflow:hidden;box-shadow:0 2px 12px #1c44320a;margin-bottom:18px}
+.cardhead{padding:18px 20px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.cardhead h3{margin:0;font-size:16px}.cardhead p{font-size:12px;color:#708175;margin:4px 0 0}
+.step{font-size:12px;color:#27734e;font-weight:800;margin-right:4px}
+.cardbody{padding:0 20px 20px}
+.searchbar{display:flex;gap:10px;align-items:center}
+.searchwrap{position:relative;flex:1;min-width:0}
+.searchwrap svg{position:absolute;top:50%;transform:translateY(-50%);left:12px;color:#84978c}
+.searchwrap input{width:100%;border:1px solid #d3dfd7;background:#f8faf9;border-radius:10px;padding:11px 12px 11px 39px;font-size:13px;outline-color:#267b52}
+.primary{background:#167347;border:1px solid #167347;color:white;padding:11px 16px;border-radius:10px;font-weight:700;font-size:13px}
+.primary:hover{background:#0e6038}.primary:disabled{background:#abc5b4;border-color:#abc5b4;cursor:not-allowed}
+.outline{background:white;border:1px solid #d1e0d5;color:#22523b;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:650}
+.outline:hover{background:#f4f9f5}
+.tip{color:#7a8c80;font-size:12px;margin:10px 0 0}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{background:#f7faf8;color:#788d80;font-size:11px;text-transform:uppercase;letter-spacing:.4px;font-weight:750;white-space:nowrap}
+th,td{padding:13px 12px;text-align:left;border-bottom:1px solid #edf1ee}
+tbody tr:last-child td{border-bottom:0}
+tbody tr.pick{cursor:pointer}tbody tr.pick:hover{background:#f6fbf7}tbody tr.selected{background:#eaf7ed}
+.radio{width:17px;height:17px;accent-color:#16814c;vertical-align:middle;cursor:pointer}
+.small{font-size:12px;color:#74877a}.subject{font-weight:675;color:#1d392c;white-space:nowrap}
+.pdfcount{display:inline-block;background:#e7f4ec;border-radius:7px;color:#216b46;font-size:12px;padding:4px 7px;font-weight:750}
+.selectline{padding:13px 20px;background:#f8fbf9;border-top:1px solid #e8f0e9;display:flex;align-items:center;gap:10px;justify-content:space-between}
+.selectline span{font-size:12px;color:#63796a}.hidden{display:none!important}
+.sidebarbody{padding:0 18px 18px}
+.item{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid #eaf0eb}
+.item:last-of-type{border-bottom:none}
+.ico{display:grid;place-items:center;width:37px;height:37px;border-radius:10px;background:#e8f2ec;color:#186742;flex-shrink:0}
+.item strong{font-size:13px}.item small{display:block;color:#758778;font-size:12px;margin-top:3px;word-break:break-word}
+.state{display:inline-flex;align-items:center;gap:6px;color:#246845;background:#e5f3e9;border-radius:30px;padding:5px 10px;font-size:11px;font-weight:750}
+.state.wait{color:#916b25;background:#fdf0d9}
+.sectionrow{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.log{border:1px solid #e5ede7;background:#f8faf9;border-radius:10px;padding:13px;color:#526f5d;font-size:12px;min-height:58px}
+.progress{height:9px;background:#e8eee9;border-radius:99px;overflow:hidden;margin:15px 0 7px}
+.progress div{height:100%;width:0;background:#248958;transition:width .24s ease}
+.summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:16px}
+.summary>div{border-radius:9px;background:#f3f8f5;text-align:center;padding:10px 6px}
+.summary strong{display:block;font-size:22px}.summary span{color:#708477;font-size:11px}
+.footer{font-size:12px;color:#85978c;padding:8px 0 0;display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
+.footer a{color:#24764d}.empty{text-align:center;padding:23px;color:#819184;font-size:13px}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 20px;border-top:1px solid #ebf0ed;background:#fbfdfb}
+.toolbar p{margin:0;font-size:12px;color:#74897a}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1d4b37;color:#fff;border-radius:11px;padding:12px 18px;box-shadow:0 8px 32px #153a2833;font-size:13px;z-index:20;max-width:min(90vw,680px);text-align:center}
+@media(max-width:950px){.layout{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.wrap{padding:0 14px}.header{align-items:flex-start}.headright{align-items:flex-end}.hbadge{font-size:10px}.ghost{display:none}.notice{padding:12px}.heading h2{font-size:22px}.metrics{gap:8px}.metric{padding:12px}.metric b{font-size:24px}.cardhead,.cardbody{padding-left:13px;padding-right:13px}.searchbar{flex-direction:column;align-items:stretch}.selectline{flex-direction:column;align-items:stretch}.summary{gap:6px}.toolbar{flex-direction:column;align-items:stretch}}
+</style>
+</head>
+<body>
+<header class="topbar">
+<div class="wrap header">
+<div class="logo">
+<div class="mark" aria-hidden="true">D</div>
+<div><h1>Depurador de PDF</h1><span>Gestión documental · Microsoft 365</span></div>
+</div>
+<div class="headright"><span class="hbadge">DEMO INTERACTIVA</span><a class="ghost" href="https://github.com/Sebastian1047/deputador_de_pdfs">Ver código ↗</a></div>
+</div>
+</header>
+<main class="wrap">
+<div class="notice" role="note">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 2 21h20L12 3Z"/><path d="M12 9v5m0 4h.01"/></svg>
+<div><strong>Está viendo una demostración, no el servidor de la empresa.</strong><p>Todos los correos, PDF y registros de Excel son ficticios. Esta vista funciona directamente en el navegador y no accede a Outlook, OneDrive ni procesa documentos reales. La aplicación real requiere Windows Server.</p></div>
+</div>
+
+<div class="heading"><h2>Panel de procesamiento</h2><p>Seleccione un correo empresarial, procese sus PDF y revise los resultados de ejemplo.</p></div>
+<div class="metrics">
+<div class="metric"><div><small>Correos disponibles</small><b id="metric-emails">5</b></div><div class="metric-icon" aria-hidden="true">✉</div></div>
+<div class="metric"><div><small>PDF del correo</small><b id="metric-pdfs">—</b></div><div class="metric-icon" aria-hidden="true">▤</div></div>
+<div class="metric"><div><small>Registros agregados</small><b id="metric-added">0</b></div><div class="metric-icon" aria-hidden="true">✓</div></div>
+<div class="metric warn"><div><small>Incidencias</small><b id="metric-errors">0</b></div><div class="metric-icon" aria-hidden="true">!</div></div>
+</div>
+
+<div class="layout">
+<div>
+<section class="card" aria-labelledby="title-search">
+<div class="cardhead"><div><h3 id="title-search"><span class="step">01</span> Buscar correos de Outlook</h3><p>Filtro de remitente o asunto · datos ficticios</p></div><span class="state">● Conexión simulada</span></div>
+<div class="cardbody"><div class="searchbar">
+<div class="searchwrap">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10.8" cy="10.8" r="6.5"/><path d="m16 16 5 5"/></svg>
+<input id="filter" aria-label="Buscar correos" placeholder="Buscar por remitente o asunto..." value="">
+</div>
+<button id="btn-search" class="primary" type="button">Buscar correos</button>
+</div><p class="tip">Ejemplo: “producción”, “proveedor” o “reporte”. También puede dejar el filtro vacío.</p></div>
+</section>
+<section class="card" aria-labelledby="title-mails">
+<div class="cardhead"><div><h3 id="title-mails"><span class="step">02</span> Seleccionar un correo específico</h3><p>Solo se procesarán los PDF del mensaje elegido</p></div><span class="state wait" id="list-state">Sin selección</span></div>
+<div class="tablewrap">
+<table aria-label="Lista de correos ficticios">
+<thead><tr><th aria-label="Elegir"></th><th>Fecha</th><th>Remitente</th><th>Asunto</th><th>Adjuntos</th></tr></thead>
+<tbody id="mail-rows"></tbody>
+</table>
+</div>
+<div class="selectline"><span id="chosen">Seleccione una fila de la lista</span><button class="primary" id="btn-process" type="button" disabled>Procesar correo elegido →</button></div>
+</section>
+<section class="card" aria-labelledby="title-result">
+<div class="cardhead"><div><h3 id="title-result"><span class="step">03</span> Resultado del procesamiento</h3><p>Ejemplo de extracción Python y consolidación de Excel</p></div><span class="state wait" id="process-state">Pendiente</span></div>
+<div class="cardbody">
+<div class="log" role="status" aria-live="polite" id="log">Seleccione un correo y pulse «Procesar correo elegido» para ver una simulación.</div>
+<div class="progress"><div id="progress-fill"></div></div>
+<div class="summary">
+<div><strong id="result-found">0</strong><span>PDF encontrados</span></div>
+<div><strong id="result-added">0</strong><span>Filas nuevas</span></div>
+<div><strong id="result-repeated">0</strong><span>Duplicados</span></div>
+</div>
+</div>
+</section>
+<section class="card" aria-labelledby="title-excel">
+<div class="cardhead"><div><h3 id="title-excel"><span class="step">04</span> Vista previa de Excel Online</h3><p>Archivo ilustrativo: Reportes/Consolidado.xlsx</p></div><span class="state" id="excel-state">Sin datos</span></div>
+<div class="tablewrap"><table aria-label="Filas de Excel simuladas">
+<thead><tr><th>Documento</th><th>Fecha</th><th>Área</th><th>Cantidad</th><th>Estado</th></tr></thead>
+<tbody id="excel-rows"><tr><td colspan="5" class="empty">Las filas simuladas aparecerán después del procesamiento.</td></tr></tbody>
+</table></div>
+<div class="toolbar"><p>Solo vista previa · no modifica ningún archivo externo.</p><button class="outline" type="button" id="btn-reset">Restablecer demostración</button></div>
+</section>
+</div>
+<aside>
+<section class="card">
+<div class="cardhead"><h3>Conexiones del proyecto</h3></div>
+<div class="sidebarbody">
+<div class="item"><div class="ico">✉</div><div><strong>Outlook empresarial</strong><small>Microsoft 365 / Exchange Online</small><span class="state wait">Simulado</span></div></div>
+<div class="item"><div class="ico">▤</div><div><strong>Motor PDF · Python</strong><small>Reglas de extracción personalizables</small><span class="state wait">Servidor pendiente</span></div></div>
+<div class="item"><div class="ico">▦</div><div><strong>Excel Online</strong><small>OneDrive empresarial</small><span class="state wait">Simulado</span></div></div>
+<div class="item"><div class="ico">▣</div><div><strong>Servidor Windows</strong><small>Aplicación privada con acceso HTTPS e inicio de sesión</small><span class="state wait">Por instalar</span></div></div>
+</div>
+</section>
+<section class="card">
+<div class="cardhead"><h3>Flujo de trabajo</h3></div>
+<div class="sidebarbody">
+<div class="item"><div class="ico">1</div><div><strong>Buscar un correo</strong><small>Filtrar mensajes de Outlook.</small></div></div>
+<div class="item"><div class="ico">2</div><div><strong>Elegir el mensaje</strong><small>Revisar remitente, fecha y número de PDF.</small></div></div>
+<div class="item"><div class="ico">3</div><div><strong>Procesar PDF</strong><small>Extraer datos y revisar duplicados.</small></div></div>
+<div class="item"><div class="ico">4</div><div><strong>Actualizar Excel</strong><small>Agregar registros a OneDrive empresarial.</small></div></div>
+</div>
+</section>
+</aside>
+</div>
+<div class="footer"><span>Depurador de PDF · Vista pública de demostración · No introducir datos reales</span><span>Proyecto: <a href="https://github.com/Sebastian1047/deputador_de_pdfs">GitHub ↗</a></span></div>
+</main>
+<div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+<script>
+(function(){
+"use strict";
+var correos=[
+{id:"e1",fecha:"20/10/2026",origen:"proveedor@empresa.com",asunto:"Reporte semanal de producción",pdf:40,area:"Producción"},
+{id:"e2",fecha:"19/10/2026",origen:"calidad@empresa.com",asunto:"Documentos de calidad",pdf:32,area:"Calidad"},
+{id:"e3",fecha:"18/10/2026",origen:"reportes@empresa.com",asunto:"Consolidado de operaciones",pdf:45,area:"Operaciones"},
+{id:"e4",fecha:"17/10/2026",origen:"logistica@empresa.com",asunto:"Informes de despacho",pdf:38,area:"Logística"},
+{id:"e5",fecha:"16/10/2026",origen:"proveedor@empresa.com",asunto:"Reporte anterior de producción",pdf:40,area:"Producción"}
+];
+var elegida=null,visibles=correos.slice(),procesando=false,registro=new Set(),totalAgregados=0,ejemploFilas=[];
+var $=function(id){return document.getElementById(id);};
+function texto(id,value){$(id).textContent=String(value);}
+function nodo(t,cls,txt){var e=document.createElement(t);if(cls)e.className=cls;if(txt!==undefined)e.textContent=String(txt);return e;}
+function aviso(msg){var e=$("toast");e.textContent=msg;e.classList.remove("hidden");clearTimeout(aviso.t);aviso.t=setTimeout(function(){e.classList.add("hidden");},3600);}
+function muestraCorreos(){
+var tbody=$("mail-rows");tbody.replaceChildren();
+if(!visibles.length){var tr=nodo("tr"),td=nodo("td","empty","No encontramos correos de ejemplo con ese filtro.");td.colSpan=5;tr.append(td);tbody.append(tr);}
+visibles.forEach(function(mail){
+var tr=nodo("tr","pick"+(mail.id===elegida?" selected":""));
+var cel=nodo("td");
+var radio=nodo("input","radio");radio.type="radio";radio.name="correo";radio.value=mail.id;radio.checked=mail.id===elegida;radio.setAttribute("aria-label","Seleccionar "+mail.asunto);
+cel.append(radio);tr.append(cel);
+tr.append(nodo("td","small",mail.fecha));
+tr.append(nodo("td","small",mail.origen));
+tr.append(nodo("td","subject",mail.asunto));
+var count=nodo("td");count.append(nodo("span","pdfcount",mail.pdf+" PDF"));tr.append(count);
+tr.addEventListener("click",function(){if(procesando)return;elegida=mail.id;muestraCorreos();actualizarSeleccion();});
+tbody.append(tr);
+});
+texto("metric-emails",visibles.length);
+}
+function actualizarSeleccion(){
+var mail=correos.find(function(c){return c.id===elegida;});
+texto("metric-pdfs",mail?mail.pdf:"—");
+texto("chosen",mail?"Seleccionado: "+mail.asunto+" · "+mail.pdf+" PDF":"Seleccione una fila de la lista");
+$("btn-process").disabled=!mail||procesando;
+texto("list-state",mail?"✓ Correo seleccionado":"Sin selección");
+$("list-state").className=mail?"state":"state wait";
+}
+function buscar(){
+if(procesando)return;
+var f=$("filter").value.trim().toLowerCase().replace(/^(from:|subject:)/,"");
+visibles=correos.filter(function(c){return c.asunto.toLowerCase().includes(f)||c.origen.toLowerCase().includes(f);});
+if(!visibles.some(function(c){return c.id===elegida;}))elegida=null;
+muestraCorreos();actualizarSeleccion();
+aviso(visibles.length+" correos ficticios encontrados.");
+}
+function mostrarExcel(){
+var tb=$("excel-rows");tb.replaceChildren();
+if(!ejemploFilas.length){var tr=nodo("tr"),td=nodo("td","empty","Las filas simuladas aparecerán después del procesamiento.");td.colSpan=5;tr.append(td);tb.append(tr);return;}
+ejemploFilas.slice(-8).reverse().forEach(function(f){
+var tr=nodo("tr");
+[f.documento,f.fecha,f.area,f.cantidad,"Agregado"].forEach(function(v,i){tr.append(nodo("td",i===4?"small":"",v));});
+tb.append(tr);
+});
+texto("excel-state",ejemploFilas.length+" filas de ejemplo");
+}
+function procesar(){
+if(procesando||!elegida)return;
+var mail=correos.find(function(c){return c.id===elegida;});if(!mail)return;
+if(!window.confirm("DEMOSTRACIÓN: ¿Simular el procesamiento de los "+mail.pdf+" PDF del correo «"+mail.asunto+"»? No se accederá a Outlook ni a Excel real."))return;
+procesando=true;$("btn-search").disabled=true;$("btn-process").disabled=true;
+texto("process-state","Simulando...");$("process-state").className="state wait";
+texto("log","Simulando lectura de "+mail.pdf+" adjuntos PDF en memoria...");
+$("progress-fill").style.width="12%";
+var pasos=0,maxPasos=12;
+var timer=setInterval(function(){
+pasos++;$("progress-fill").style.width=Math.min(97,Math.round(pasos/maxPasos*100))+"%";
+if(pasos<maxPasos){texto("log","Simulación en curso: revisando campos de PDF y evitando duplicados... ("+Math.round(pasos/maxPasos*100)+" %)");return;}
+clearInterval(timer);
+var nuevos=0,repetidos=0;
+for(var i=1;i<=mail.pdf;i++){
+var key=mail.id+"-"+i;
+if(registro.has(key)){repetidos++;continue;}
+registro.add(key);nuevos++;
+if(ejemploFilas.length<200){
+ejemploFilas.push({documento:"PDF-"+mail.id.toUpperCase()+"-"+String(i).padStart(3,"0"),
+fecha:mail.fecha.slice(0,10),area:mail.area,cantidad:String(100+i),});
+}
+}
+totalAgregados+=nuevos;procesando=false;
+texto("result-found",mail.pdf);texto("result-added",nuevos);texto("result-repeated",repetidos);
+texto("metric-added",totalAgregados);texto("metric-errors",0);
+texto("process-state","✓ Completado (simulación)");$("process-state").className="state";
+texto("log","Finalizado (simulación): "+nuevos+" filas ficticias agregadas, "+repetidos+" duplicados evitados. No se modificó ningún Excel real.");
+$("progress-fill").style.width="100%";$("btn-search").disabled=false;
+mostrarExcel();muestraCorreos();actualizarSeleccion();aviso("Proceso simulado completado.");
+},95);
+}
+function reset(){
+if(procesando)return;
+registro.clear();totalAgregados=0;ejemploFilas=[];elegida=null;visibles=correos.slice();$("filter").value="";
+texto("metric-added",0);texto("metric-errors",0);texto("result-found",0);texto("result-added",0);texto("result-repeated",0);
+texto("process-state","Pendiente");$("process-state").className="state wait";
+texto("log","Seleccione un correo y pulse «Procesar correo elegido» para ver una simulación.");
+texto("excel-state","Sin datos");$("progress-fill").style.width="0";
+mostrarExcel();muestraCorreos();actualizarSeleccion();aviso("Demostración reiniciada.");
+}
+$("btn-search").addEventListener("click",buscar);
+$("filter").addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();buscar();}});
+$("btn-process").addEventListener("click",procesar);
+$("btn-reset").addEventListener("click",reset);
+muestraCorreos();actualizarSeleccion();
+})();
+</script>
+</body>
+</html>
