@@ -1,4 +1,4 @@
-# Depurador de PDF · v0.6.1
+# Depurador de PDF · v0.6.2
 
 **Aplicación web Python para Windows Server**. El usuario inicia sesión en el navegador de la empresa, busca correos en Outlook empresarial, escoge un correo específico, procesa sus PDF adjuntos **en memoria** y agrega datos a **Excel Online** en Microsoft 365.
 
@@ -62,3 +62,14 @@ Nunca compartir contraseña, token ni credenciales JSON en GitHub o ChatGPT. La 
 
 
 **Protección adicional para Gmail personal:** configure en el Windows Server la variable privada `GMAIL_EXPECTED_EMAIL` con la dirección del buzón que realmente recibe los PDF. El sistema verifica que la cuenta autorizada por OAuth coincide antes de listar mensajes, sin guardar esa dirección en el repositorio.
+
+
+## OAuth web de Gmail listo para despliegue (v0.6.2)
+
+El repositorio incluye las rutas de servidor `POST /oauth/google/conectar` y `GET /oauth/google/callback`, con sesión autenticada, protección CSRF, estado OAuth de 10 minutos, verificación de la cuenta Gmail esperada y guardado privado del refresh token. El panel mostrará un botón **Autorizar Gmail con Google** cuando estén configurados el cliente OAuth y la dirección HTTPS del servidor.
+
+**Mientras el proyecto solo esté en GitHub no se puede finalizar OAuth ni consultar el buzón real desde GitHub Pages.** No registrar una dirección de GitHub Pages como redirect URI; es una página estática pública. El servidor con Flask debe estar disponible en una URL HTTPS segura y previamente autorizada en Google Cloud. Para pruebas locales únicamente, Google permite `http://localhost`.
+
+Guía: [OAuth Gmail desde la aplicación web](docs/OAUTH_GMAIL_WEB.md).
+
+La credencial elegida en Google Cloud debe ser del tipo **Aplicación web** (no la de aplicación de escritorio usada por el flujo local opcional anterior). No almacenar el secreto OAuth, tokens ni PDFs de usuarios en el repositorio público.

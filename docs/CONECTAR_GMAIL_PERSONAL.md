@@ -87,3 +87,8 @@ El servidor ofrece la variable adicional **`GMAIL_EXPECTED_EMAIL`**. TI deberá 
 Cuando el servidor lee Gmail, consulta el perfil del usuario autenticado con `users.getProfile` y verifica que coincide con esta variable. Si al iniciar sesión en Google se eligió otra cuenta, el sistema rechaza la conexión antes de consultar mensajes. La contraseña no se transmite a la aplicación.
 
 No compartir el token `GMAIL_TOKEN_FILE`, el archivo OAuth `client_secret_*.json` ni contraseñas por chat o GitHub. La dirección del correo no concede acceso por sí sola.
+
+
+## Importante para uso desde celulares y computadores
+
+La autorización por navegador descrita arriba con cliente **Desktop app** es una alternativa anterior para iniciar desde la consola del servidor. Para la versión web se ha implementado un **cliente OAuth tipo Aplicación web** con retorno dentro de Flask y botón de autorización interno. Véase [OAuth GMAIL web](OAUTH_GMAIL_WEB.md). **No se puede usar GitHub Pages como servidor OAuth**.
