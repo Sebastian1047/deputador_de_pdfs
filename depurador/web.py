@@ -38,6 +38,7 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
         SECRET_KEY=os.getenv("WEB_SECRET_KEY", ""),
         ADMIN_USER=os.getenv("WEB_ADMIN_USER", "administrador"),
         ADMIN_PASSWORD_HASH=os.getenv("WEB_PASSWORD_HASH", ""),
+        ADMIN_PASSWORD=os.getenv("WEB_ADMIN_PASSWORD", ""),
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
         SESSION_COOKIE_SECURE=os.getenv("WEB_SECURE_COOKIES", "true").lower() == "true",
@@ -46,6 +47,7 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
         GMAIL_QUERY=os.getenv("GMAIL_QUERY") or CONSULTA,
         GMAIL_TOKEN_FILE=os.getenv("GMAIL_TOKEN_FILE") or "",
         GMAIL_OAUTH_CLIENT_FILE=os.getenv("GMAIL_OAUTH_CLIENT_FILE") or "",
+        GMAIL_OAUTH_CLIENT_JSON=os.getenv("GMAIL_OAUTH_CLIENT_JSON") or "",
         GMAIL_REDIRECT_URI=os.getenv("GMAIL_REDIRECT_URI") or "",
         GMAIL_EXPECTED_EMAIL=os.getenv("GMAIL_EXPECTED_EMAIL") or "",
         MAIL_PROVIDER=(os.getenv("MAIL_PROVIDER") or "outlook").lower(),
@@ -66,9 +68,19 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
     )
     if config:
         app.config.update(config)
+    # En un servicio cloud, el password puede ser un secreto de entorno.
+    # Nunca guardar contraseñas sin cifrar en el repositorio.
+    if not app.config["ADMIN_PASSWORD_HASH"] and app.config["ADMIN_PASSWORD"]:
+        if len(app.config["ADMIN_PASSWORD"]) < 12:
+            raise RuntimeError("WEB_ADMIN_PASSWORD debe tener al menos 12 caracteres")
+        app.config["ADMIN_PASSWORD_HASH"] = generate_password_hash(app.config["ADMIN_PASSWORD"])
+    app.config.pop("ADMIN_PASSWORD", None)
+
     if not app.config.get("TESTING"):
         if len(app.config["SECRET_KEY"]) < 32 or not app.config["ADMIN_PASSWORD_HASH"]:
-            raise RuntimeError("Configure WEB_SECRET_KEY y WEB_PASSWORD_HASH en el servidor")
+            raise RuntimeError(
+                "Configure WEB_SECRET_KEY y WEB_PASSWORD_HASH o WEB_ADMIN_PASSWORD"
+            )
     if app.config["MAIL_PROVIDER"] not in ("outlook", "gmail"):
         raise ValueError("MAIL_PROVIDER debe ser outlook o gmail")
     if app.config["TABLE_PROVIDER"] not in ("excel_online", "google_sheets"):
@@ -108,6 +120,11 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
     intentos: dict[str, list[float]] = {}
     candado_intentos = threading.Lock()
 
+    def _oauth_origen():
+        return ("json:" + app.config["GMAIL_OAUTH_CLIENT_JSON"]
+                if app.config["GMAIL_OAUTH_CLIENT_JSON"]
+                else app.config["GMAIL_OAUTH_CLIENT_FILE"])
+
     def csrf_token():
         if "_csrf" not in session:
             session["_csrf"] = secrets.token_urlsafe(32)
@@ -143,6 +160,10 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
                 return redirect(url_for("login"))
             return view(*args, **kwargs)
         return ejecutar
+
+    @app.get("/health")
+    def health():
+        return {"status": "ok"}, 200
 
     @app.route("/login", methods=["GET", "POST"])
     def login():
@@ -208,7 +229,7 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
                             else "Google Sheets"),
             gmail_modo=app.config["MAIL_PROVIDER"] == "gmail",
             gmail_oauth_preparado=bool(
-                app.config["GMAIL_OAUTH_CLIENT_FILE"]
+                (app.config["GMAIL_OAUTH_CLIENT_FILE"] or app.config["GMAIL_OAUTH_CLIENT_JSON"])
                 and app.config["GMAIL_REDIRECT_URI"]
                 and app.config["GMAIL_TOKEN_FILE"]
                 and app.config["GMAIL_EXPECTED_EMAIL"]
@@ -222,14 +243,14 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
         if app.config["MAIL_PROVIDER"] != "gmail":
             abort(404)
         if not all((
-            app.config["GMAIL_OAUTH_CLIENT_FILE"], app.config["GMAIL_REDIRECT_URI"],
+            (app.config["GMAIL_OAUTH_CLIENT_FILE"] or app.config["GMAIL_OAUTH_CLIENT_JSON"]), app.config["GMAIL_REDIRECT_URI"],
             app.config["GMAIL_TOKEN_FILE"], app.config["GMAIL_EXPECTED_EMAIL"],
         )):
             flash("Pendiente configurar OAuth web en el servidor.", "error")
             return redirect(url_for("inicio"))
         try:
             url, estado = iniciar_oauth(
-                app.config["GMAIL_OAUTH_CLIENT_FILE"], app.config["GMAIL_REDIRECT_URI"]
+                _oauth_origen(), app.config["GMAIL_REDIRECT_URI"]
             )
             session["gmail_oauth_state"] = estado
             session["gmail_oauth_inicio"] = time.time()
@@ -261,7 +282,7 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
             abort(400, description="Falta el código de autorización")
         try:
             completar_oauth(
-                app.config["GMAIL_OAUTH_CLIENT_FILE"],
+                _oauth_origen(),
                 app.config["GMAIL_REDIRECT_URI"],
                 esperado, codigo,
                 app.config["GMAIL_TOKEN_FILE"],

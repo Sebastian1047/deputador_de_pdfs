@@ -34,12 +34,19 @@ def crear_flujo_web(cliente_json: str, uri_retorno: str, state: str | None = Non
     from google_auth_oauthlib.flow import Flow
 
     uri = validar_uri_retorno(uri_retorno)
-    archivo = Path(cliente_json).expanduser()
-    if not archivo.is_absolute() or not archivo.is_file():
-        raise FileNotFoundError("Configure GMAIL_OAUTH_CLIENT_FILE como archivo privado absoluto")
-    if archivo.stat().st_size > 64 * 1024:
-        raise ValueError("El JSON de OAuth excede el tamaño permitido")
-    configuracion = json.loads(archivo.read_text(encoding="utf-8"))
+    if cliente_json.startswith("json:"):
+        # Secreto suministrado por la configuración privada del proveedor cloud.
+        raw = cliente_json[5:]
+        if len(raw) > 64 * 1024:
+            raise ValueError("El JSON de OAuth excede el tamaño permitido")
+        configuracion = json.loads(raw)
+    else:
+        archivo = Path(cliente_json).expanduser()
+        if not archivo.is_absolute() or not archivo.is_file():
+            raise FileNotFoundError("Configure GMAIL_OAUTH_CLIENT_FILE como archivo privado absoluto")
+        if archivo.stat().st_size > 64 * 1024:
+            raise ValueError("El JSON de OAuth excede el tamaño permitido")
+        configuracion = json.loads(archivo.read_text(encoding="utf-8"))
     if not isinstance(configuracion, dict) or "web" not in configuracion or "installed" in configuracion:
         raise ValueError("Las credenciales deben ser de tipo Aplicación web")
     flujo = Flow.from_client_config(
