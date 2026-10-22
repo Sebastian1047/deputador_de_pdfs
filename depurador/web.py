@@ -376,7 +376,10 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
                 and app.config["GOOGLE_SHEETS_TEMPLATE"] == "creditos_sole"
                 else None
             )
-            resumen = procesar(origen, destino, campos, extractor=extractor)
+            if extractor is None:
+                resumen = procesar(origen, destino, campos)
+            else:
+                resumen = procesar(origen, destino, campos, extractor=extractor)
             if app.config["TABLE_PROVIDER"] == "excel_online":
                 destino.finalizar()  # Solo se reporta éxito si el Excel se guardó correctamente.
             with mutex:
