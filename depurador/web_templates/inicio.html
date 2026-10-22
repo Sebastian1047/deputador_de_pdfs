@@ -17,6 +17,20 @@
 {% for categoria, mensaje in get_flashed_messages(with_categories=true) %}
 <div class="aviso {{ categoria }}">{{ mensaje }}</div>
 {% endfor %}
+{% if gmail_modo %}
+<section class="panel">
+<h2>Conectar Gmail personal</h2>
+{% if gmail_oauth_preparado %}
+<p class="nota">La cuenta propietaria puede conceder acceso de solo lectura desde Google. No se solicitan contraseñas en esta aplicación.</p>
+<form method="post" action="{{ url_for('vincular_gmail_web') }}">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<button type="submit">Autorizar Gmail con Google</button>
+</form>
+{% else %}
+<p class="nota">La autorización web quedará disponible cuando TI configure el cliente OAuth, su URL HTTPS de retorno y la carpeta privada del token en Windows Server. GitHub Pages es solo una demostración.</p>
+{% endif %}
+</section>
+{% endif %}
 <section class="panel">
 <div class="titulo-seccion"><h2>1. Buscar correos con PDF</h2><span class="etiqueta">{{ proveedor }}</span></div>
 <form method="post" action="{{ url_for('buscar') }}" class="busqueda">
@@ -70,7 +84,7 @@
 {% else %}
 <p class="vacio">Todavía no ha procesado un correo desde esta sesión.</p>
 {% endif %}
-{% if not configurado %}<p class="nota">Pendiente: configurar el ID de la hoja Google Sheets en el servidor.</p>{% endif %}
+{% if not configurado %}<p class="nota">Pendiente: configurar {{ destino_nombre }} en el servidor.</p>{% endif %}
 </section>
 <footer>Servidor local · Uso interno · No subir archivos PDF ni contraseñas al repositorio público.</footer>
 </main>
