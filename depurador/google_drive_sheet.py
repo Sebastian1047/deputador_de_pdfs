@@ -56,6 +56,7 @@ class GoogleSheetsCreditosWriter:
         self.values = service.spreadsheets().values()
         self.sheet_id = None
         self.control_id = None
+        self.creditos_existentes: set[str] = set()
 
     def claves_existentes(self, campos: Sequence[Campo]) -> set[str]:
         if [campo.nombre.strip().casefold() for campo in campos] != [
@@ -81,6 +82,14 @@ class GoogleSheetsCreditosWriter:
             c.casefold() for c in COLUMNAS
         ]:
             raise ValueError("La plantilla de destino tiene columnas diferentes al Excel original")
+        # Revisar el histórico por número QC; los registros previos a la
+        # aplicación no tienen claves de PDF en la pestaña técnica.
+        historicos = self.values.get(
+            spreadsheetId=self.spreadsheet_id, range=_a1(self.tab, "F2:F")
+        ).execute().get("values", [])
+        self.creditos_existentes = {
+            str(fila[0]).strip() for fila in historicos if fila and fila[0] != ""
+        }
         self.control_id = tabs.get(CONTROL)
         if self.control_id is None:
             creado = self.service.spreadsheets().batchUpdate(
@@ -98,11 +107,18 @@ class GoogleSheetsCreditosWriter:
         ).execute().get("values", [])
         return {str(row[0]) for row in claves if row}
 
+    def es_registro_historico(self, datos: Sequence[str]) -> bool:
+        if len(datos) != len(COLUMNAS):
+            raise ValueError("No coinciden las 7 columnas de la plantilla")
+        return str(datos[5]).strip() in self.creditos_existentes
+
     def agregar(self, clave: str, fecha_utc: str, datos: Sequence[str]) -> None:
         if self.sheet_id is None or self.control_id is None:
             raise RuntimeError("Debe verificar encabezados y duplicados antes de escribir")
         if len(datos) != len(COLUMNAS):
             raise ValueError("La plantilla necesita 7 valores por PDF")
+        if self.es_registro_historico(datos):
+            raise ValueError("Crédito QC ya existente; no duplicar")
         celdas = []
         for i, value in enumerate(datos):
             if i in (3, 4, 5, 6):
@@ -129,3 +145,4 @@ class GoogleSheetsCreditosWriter:
         self.service.spreadsheets().batchUpdate(
             spreadsheetId=self.spreadsheet_id, body={"requests": requests}
         ).execute()
+        self.creditos_existentes.add(str(datos[5]).strip())

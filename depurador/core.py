@@ -5,7 +5,7 @@ import logging
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Iterable, Mapping, Protocol, Sequence
+from typing import Callable, Iterable, Mapping, Protocol, Sequence
 
 import fitz
 
@@ -69,7 +69,8 @@ def extraer_datos(contenido: bytes, campos: Sequence[Campo]) -> list[str]:
     return salida
 
 
-def procesar(correo: LectorCorreo, tabla: EscritorTabla, campos: Sequence[Campo]) -> dict[str, int]:
+def procesar(correo: LectorCorreo, tabla: EscritorTabla, campos: Sequence[Campo],
+            extractor: Callable[[bytes, Sequence[Campo]], list[str]] | None = None) -> dict[str, int]:
     if not campos:
         raise ValueError("Configure los campos de extracción antes de procesar correos reales")
     conocidas = tabla.claves_existentes(campos)
@@ -80,7 +81,12 @@ def procesar(correo: LectorCorreo, tabla: EscritorTabla, campos: Sequence[Campo]
             resumen["duplicados"] += 1
             continue
         try:
-            valores = extraer_datos(adjunto.contenido, campos)
+            valores = (extractor or extraer_datos)(adjunto.contenido, campos)
+            # La plantilla histórica ya tiene QC Inspection, pero carece de
+            # document_key. Evitar importar de nuevo un crédito ya registrado.
+            if hasattr(tabla, "es_registro_historico") and tabla.es_registro_historico(valores):
+                resumen["duplicados"] += 1
+                continue
             fecha = datetime.now(timezone.utc).isoformat(timespec="seconds")
             tabla.agregar(adjunto.clave, fecha, valores)
             conocidas.add(adjunto.clave)

@@ -1,3 +1,26 @@
 {
-  "campos": []
+  "formato": "creditos_sole",
+  "campos": [
+    {
+      "nombre": "VARIEDAD"
+    },
+    {
+      "nombre": "CAT"
+    },
+    {
+      "nombre": "FINCA"
+    },
+    {
+      "nombre": "RM"
+    },
+    {
+      "nombre": "TOTAL"
+    },
+    {
+      "nombre": "QC Inspection"
+    },
+    {
+      "nombre": "MES"
+    }
+  ]
 }

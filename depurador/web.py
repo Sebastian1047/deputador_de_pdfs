@@ -16,13 +16,14 @@ from pathlib import Path
 from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from .core import leer_campos, procesar
+from .core import Campo, leer_campos, procesar
 from .proveedores import GmailMensajeSeleccionado, GmailReader, GoogleSheetsWriter, crear_servicios_google, crear_servicio_google_sheets
 from .outlook import OutlookMensajeSeleccionado, OutlookReader, crear_cliente_outlook
 from .excel_online import ExcelOnlineWriter, GraphExcelFile, crear_excel_desde_onedrive
 from .gmail_personal import crear_servicio_gmail_personal
 from .oauth_web import iniciar_oauth, completar_oauth
-from .google_drive_sheet import GoogleSheetsCreditosWriter
+from .google_drive_sheet import COLUMNAS as COLUMNAS_SOLE, GoogleSheetsCreditosWriter
+from .sole_pdf import extraer_credito_sole
 
 LOG = logging.getLogger(__name__)
 CONSULTA = "has:attachment filename:pdf newer_than:30d"
@@ -30,7 +31,13 @@ CONSULTA = "has:attachment filename:pdf newer_than:30d"
 
 def _reglas(ruta: str):
     with Path(ruta).open(encoding="utf-8") as archivo:
-        return leer_campos(json.load(archivo))
+        datos = json.load(archivo)
+    if datos.get("formato") == "creditos_sole":
+        columnas = [campo.get("nombre") for campo in datos.get("campos", [])]
+        if columnas != list(COLUMNAS_SOLE):
+            raise ValueError("El esquema SOLE requiere exactamente las siete columnas")
+        return [Campo(nombre, r"(?s).+", True) for nombre in columnas]
+    return leer_campos(datos)
 
 
 def create_app(config: dict | None = None, service_factory=None) -> Flask:
@@ -363,7 +370,13 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
                         destino_cliente, app.config["GOOGLE_SPREADSHEET_ID"],
                         app.config["GOOGLE_SHEET_TAB"]
                     )
-            resumen = procesar(origen, destino, campos)
+            extractor = (
+                extraer_credito_sole
+                if app.config["TABLE_PROVIDER"] == "google_sheets"
+                and app.config["GOOGLE_SHEETS_TEMPLATE"] == "creditos_sole"
+                else None
+            )
+            resumen = procesar(origen, destino, campos, extractor=extractor)
             if app.config["TABLE_PROVIDER"] == "excel_online":
                 destino.finalizar()  # Solo se reporta éxito si el Excel se guardó correctamente.
             with mutex:
