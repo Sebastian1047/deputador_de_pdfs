@@ -1,4 +1,4 @@
-# Depurador de PDF · v0.5.2
+# Depurador de PDF · v0.6.0
 
 **Aplicación web Python para Windows Server**. El usuario inicia sesión en el navegador de la empresa, busca correos en Outlook empresarial, escoge un correo específico, procesa sus PDF adjuntos **en memoria** y agrega datos a **Excel Online** en Microsoft 365.
 
@@ -50,3 +50,12 @@ La ruta `docs/index.html` contiene una **demo interactiva, independiente del ser
 Para activar la URL oficial, un administrador del repositorio debe ir a **GitHub → Settings → Pages → Build and deployment → Source: Deploy from a branch → Branch: main → Folder: /docs → Save**. Puede tardar unos minutos en publicar.
 
 **Importante:** GitHub Pages y el visualizador externo sirven solo archivos estáticos. La aplicación web que realmente lee Outlook y edita Excel se ejecutará en **Windows Server interno** y no se expone a Internet desde GitHub.
+
+
+## Gmail personal para pruebas (v0.6.0)
+
+Ya se permite usar Gmail personal como fuente de PDF y Excel Online como destino empresarial, con autorización independiente para cada sistema. El panel puede buscar y seleccionar correos de Gmail sin necesidad de configurar los permisos de OneDrive. El botón de procesar permanece bloqueado hasta configurar Excel y las reglas de extracción.
+
+Manual de autorización de Gmail en el servidor: docs/CONECTAR_GMAIL_PERSONAL.md
+
+Nunca compartir contraseña, token ni credenciales JSON en GitHub o ChatGPT. La versión pública de demostración no se conecta a Gmail real.

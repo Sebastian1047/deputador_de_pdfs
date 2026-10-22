@@ -16,3 +16,9 @@ credentials*.json
 *.xlsx
 *.xls
 .env
+
+# Autorizaciones personales y carpetas privadas
+secrets/
+private/
+*.token.json
+gmail_oauth_client.json

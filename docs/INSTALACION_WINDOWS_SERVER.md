@@ -104,3 +104,8 @@ En lugar de buscar los IDs de drive e item, TI puede configurar la ruta del libr
 El servidor resuelve esos valores mediante `GET /users/{upn}/drive/root:/{ruta}:` para identificar el archivo y después utiliza la misma implementación de descarga, comparación de versión eTag y subida condicionada. Se pueden mantener alternativamente `MS_EXCEL_DRIVE_ID` y `MS_EXCEL_ITEM_ID` proporcionados por TI. Cuando ambas configuraciones existen, tiene prioridad propietario+ruta.
 
 **Advertencia:** la dirección debe ser la del **propietario real** del OneDrive. Si el libro aparece solamente en «Compartido conmigo», la ruta del destinatario podría no resolver el documento. En ese caso TI debe obtener los IDs de la unidad y el archivo donde esté realmente almacenado. La empresa debe aprobar los permisos de Microsoft Graph y realizar pruebas en una copia del Excel, especialmente ante ediciones concurrentes, formatos avanzados y etiquetas de sensibilidad.
+
+
+## Gmail personal como origen de pruebas
+
+Para reemplazar Outlook temporalmente, configure MAIL_PROVIDER=gmail y GMAIL_TOKEN_FILE con la ruta absoluta del token de Google guardado en el servidor. Mantenga TABLE_PROVIDER=excel_online como destino final. Las credenciales de Excel siguen siendo independientes y requieren autorización Microsoft 365. Consulte docs/CONECTAR_GMAIL_PERSONAL.md para la autorización inicial.
