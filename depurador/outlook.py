@@ -186,13 +186,21 @@ class OutlookMensajeSeleccionado:
         return self.lector.adjuntos_pdf(self.mensaje_id)
 
 
-def crear_cliente_outlook():
-    requeridas = ("MS_TENANT_ID", "MS_CLIENT_ID", "MS_CLIENT_SECRET", "MS_MAILBOX")
+def crear_cliente_microsoft():
+    """Identidad Microsoft solo para Excel Online: no exige buzón Outlook."""
+    requeridas = ("MS_TENANT_ID", "MS_CLIENT_ID", "MS_CLIENT_SECRET")
     faltan = [clave for clave in requeridas if not os.getenv(clave)]
     if faltan:
-        raise RuntimeError("Faltan variables Outlook: " + ", ".join(faltan))
+        raise RuntimeError("Faltan credenciales Microsoft 365: " + ", ".join(faltan))
     return GraphClient(
         os.environ["MS_TENANT_ID"],
         os.environ["MS_CLIENT_ID"],
         os.environ["MS_CLIENT_SECRET"],
     )
+
+
+def crear_cliente_outlook():
+    """Identidad corporativa más buzón obligatorio para lectura Outlook."""
+    if not os.getenv("MS_MAILBOX"):
+        raise RuntimeError("Falta MS_MAILBOX para leer Outlook")
+    return crear_cliente_microsoft()
