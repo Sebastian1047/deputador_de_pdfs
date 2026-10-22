@@ -1,4 +1,4 @@
-# Depurador de PDF · v0.8.0
+# Depurador de PDF · v0.8.1
 
 **Aplicación web Python para navegador (Render o Windows Server)**. Para las próximas pruebas, busca mensajes en Gmail personal, permite seleccionar un correo, extrae información de sus PDF adjuntos **en memoria** y agrega filas a una **hoja nativa de Google Sheets guardada en Google Drive**. La integración con Outlook y OneDrive se conserva solo como alternativa heredada.
 
@@ -101,6 +101,6 @@ Se analizó el Excel proporcionado sin modificarlo. Contiene `DETALLE DEVOLUCION
 
 Los campos esperados, en este orden, son `VARIEDAD`, `CAT`, `FINCA`, `RM`, `TOTAL`, `QC Inspection`, `MES`. Las columnas numéricas se insertan como números, y las textuales como texto literal, para no activar fórmulas maliciosas procedentes de PDF. Se validan encabezados antes de escribir.
 
-**Pendiente:** recibir un PDF de ejemplo sin datos privados para establecer los patrones de extracción de `config/campos.json`. Mientras los patrones sigan vacíos, la aplicación puede buscar correos pero no procesar PDF. La hoja de resumen `SUMA TOTAL` podría contener una tabla dinámica que no amplíe automáticamente el origen al agregar filas; verificar su rango y actualización tras convertir el Excel. Los registros históricos carecen de identificadores `document_key`; la deduplicación automática aplica a los PDF registrados por la aplicación desde la conexión inicial.
+**Extractor PDF QC Inspection implementado:** el módulo `depurador/sole_pdf.py` reconoce `Product`, `Vendor`, `Credit Quantity`, `Total Credit`, `Credit #` y `Credit Date` para completar las siete columnas de la hoja histórica. `config/campos.json` ya declara el formato `creditos_sole`. Clasifica Pom→PO, Mums Spider→SP y Mums Cremon→CR; proveedor JN-...→JN y mes de Credit Date. Verifica también números de crédito ya existentes en la columna F para evitar duplicar registros anteriores al desarrollo. Probado con el PDF de ejemplo localmente y con PDFs sintéticos en GitHub, sin subir documentos del cliente. **Pendiente:** pruebas reales de conexión en Render con autorizaciones de Gmail y Google Sheets. La hoja de resumen `SUMA TOTAL` podría contener una tabla dinámica que no amplíe automáticamente el origen al agregar filas; verificar su rango y actualización tras convertir el Excel. Los registros históricos carecen de identificadores `document_key`; la deduplicación automática aplica a los PDF registrados por la aplicación desde la conexión inicial.
 
 [Cómo subir y convertir este archivo en Google Drive](docs/PLANTILLA_CREDITOS_SOLE.md).

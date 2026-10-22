@@ -64,7 +64,7 @@ Para las próximas pruebas el origen será Gmail y el destino una hoja nativa de
    - `GOOGLE_SHEET_TAB` = `DETALLE DEVOLUCION` (ya viene del Excel original).
    - `TABLE_PROVIDER` = `google_sheets` (el Blueprint ya lo configura).
    - `GOOGLE_SHEETS_TEMPLATE` = `creditos_sole` (el Blueprint lo configura automáticamente).
-7. Definir `config/campos.json` usando un PDF de prueba anonimizado; hasta entonces se pueden buscar correos pero **no procesar sus adjuntos**. La hoja exige columnas `document_key`, `processed_utc` y campos de extracción.
+7. `config/campos.json` ya incluye el formato `creditos_sole` y las siete columnas extraídas del PDF de muestra. El lector verifica números QC en la hoja histórica antes de escribir; la hoja técnica `_CONTROL_PDF` controla documentos procesados con posterioridad.
 8. Probar solamente un correo con PDF ficticios y una copia de la hoja. Comprobar que los datos se anexen una vez y que la deduplicación funcione.
 
 No se requiere autorizar una segunda vez el Gmail para que la cuenta de servicio trabaje con Google Sheets. La aplicación conecta **dos identidades independientes** (Gmail OAuth solo lectura y cuenta de servicio con acceso a la hoja compartida). Esto evita otorgar permiso amplio sobre todo Google Drive.

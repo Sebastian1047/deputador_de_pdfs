@@ -36,8 +36,18 @@ La primera operación de análisis validará los siete encabezados y creará la 
 
 ## Pendiente antes de procesar PDF
 
-Se requiere un PDF de muestra anonimizado para conocer cómo vienen `VARIEDAD`, `CAT`, `FINCA`, `RM`, `TOTAL`, `QC Inspection` y `MES` en los documentos del correo y definir las expresiones de extracción en `config/campos.json`. No inventar reglas ni cargar datos reales sin revisarlas.
+Se analizó un PDF de muestra **QC Inspection** de dos páginas: la primera contiene texto digital y la segunda fotos. No se requiere OCR para el ejemplo. El nuevo extractor `depurador/sole_pdf.py` completa las siete columnas así:
 
-Para probar exclusivamente el panel y la conexión Gmail, este PDF todavía no es necesario.
+- VARIEDAD = Product completo.
+- CAT = PO si Pom, SP si Mums Spider, CR si Mums Cremon.
+- FINCA = JN si el proveedor empieza por JN (ej. JN-San Nicolas).
+- RM = Credit Quantity, cantidad de bunches.
+- TOTAL = Total Credit, incluyendo cargos de flete (no solo Flower Credit).
+- QC Inspection = Credit #.
+- MES = mes de Credit Date.
+
+`config/campos.json` ya define este formato y los siete encabezados. Se rechazan productos o proveedores no reconocidos. La aplicación también lee la columna F original y no agrega créditos cuyo número QC ya figure en los datos históricos, aunque no aparezcan en `_CONTROL_PDF`.
+
+La prueba local con el archivo de muestra fue satisfactoria; **no se subió el PDF real a GitHub**. Falta crear el servicio en Render, conectar Gmail y Google Sheets y verificar escritura solo en una copia de prueba.
 
 **No utilizar datos reales empresariales o personales en Render Free sin autorización del propietario y controles adecuados.** Render Free suspende el servicio y pierde archivos locales temporales, incluido el token Gmail.
