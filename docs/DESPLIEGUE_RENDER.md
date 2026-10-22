@@ -53,17 +53,19 @@ Una vez guardadas las variables, iniciar sesión en la web de Render y pulsar **
 
 Para las próximas pruebas el origen será Gmail y el destino una hoja nativa de **Google Sheets**, almacenada en Google Drive:
 
-1. En Google Cloud, proyecto **Procesador PDF JN**, habilitar **Google Sheets API** además de Gmail API.
-2. Crear una **cuenta de servicio** solo para Sheets y una clave JSON de prueba, si Google Cloud permite generar claves. El `client_email` de esa cuenta termina normalmente en `.iam.gserviceaccount.com`. No compartir la clave JSON en GitHub ni en el chat.
-3. En Google Drive, abrir una **hoja nativa de Google Sheets** de prueba, pulsar **Compartir**, agregar el `client_email` de la cuenta de servicio con permiso Editor. Compartir solo ese archivo. En organizaciones, la política de compartición externa puede impedirlo.
-4. Copiar el identificador de la URL de la hoja. Para `https://docs.google.com/spreadsheets/d/ID_DEL_DOCUMENTO/edit`, el ID es únicamente `ID_DEL_DOCUMENTO`.
-5. En Render → Servicio → Environment configurar de forma privada:
+1. Subir el Excel original a Drive, abrirlo y elegir **Archivo → Guardar como Hojas de cálculo de Google**. Se crearán dos archivos; conservar intacto el Excel original. Comprobar ambas pestañas, encabezados y el resumen. [Guía específica](PLANTILLA_CREDITOS_SOLE.md).
+2. En Google Cloud, proyecto **Procesador PDF JN**, habilitar **Google Sheets API** además de Gmail API.
+3. Crear una **cuenta de servicio** solo para Sheets y una clave JSON de prueba, si Google Cloud permite generar claves. El `client_email` de esa cuenta termina normalmente en `.iam.gserviceaccount.com`. No compartir la clave JSON en GitHub ni en el chat.
+4. En Google Drive, abrir una **hoja nativa de Google Sheets** de prueba, pulsar **Compartir**, agregar el `client_email` de la cuenta de servicio con permiso Editor. Compartir solo ese archivo. En organizaciones, la política de compartición externa puede impedirlo.
+5. Copiar el identificador de la URL de la hoja. Para `https://docs.google.com/spreadsheets/d/ID_DEL_DOCUMENTO/edit`, el ID es únicamente `ID_DEL_DOCUMENTO`.
+6. En Render → Servicio → Environment configurar de forma privada:
    - `GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON` = contenido completo del JSON de cuenta de servicio (Render no debe copiarlo al repositorio).
    - `GOOGLE_SPREADSHEET_ID` = ID del documento de Google Sheets.
-   - `GOOGLE_SHEET_TAB` = `Registros` (crear esta pestaña en el documento).
+   - `GOOGLE_SHEET_TAB` = `DETALLE DEVOLUCION` (ya viene del Excel original).
    - `TABLE_PROVIDER` = `google_sheets` (el Blueprint ya lo configura).
-6. Definir `config/campos.json` usando un PDF de prueba anonimizado; hasta entonces se pueden buscar correos pero **no procesar sus adjuntos**. La hoja exige columnas `document_key`, `processed_utc` y campos de extracción.
-7. Probar solamente un correo con PDF ficticios y una copia de la hoja. Comprobar que los datos se anexen una vez y que la deduplicación funcione.
+   - `GOOGLE_SHEETS_TEMPLATE` = `creditos_sole` (el Blueprint lo configura automáticamente).
+7. Definir `config/campos.json` usando un PDF de prueba anonimizado; hasta entonces se pueden buscar correos pero **no procesar sus adjuntos**. La hoja exige columnas `document_key`, `processed_utc` y campos de extracción.
+8. Probar solamente un correo con PDF ficticios y una copia de la hoja. Comprobar que los datos se anexen una vez y que la deduplicación funcione.
 
 No se requiere autorizar una segunda vez el Gmail para que la cuenta de servicio trabaje con Google Sheets. La aplicación conecta **dos identidades independientes** (Gmail OAuth solo lectura y cuenta de servicio con acceso a la hoja compartida). Esto evita otorgar permiso amplio sobre todo Google Drive.
 

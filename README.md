@@ -1,4 +1,4 @@
-# Depurador de PDF · v0.7.2
+# Depurador de PDF · v0.8.0
 
 **Aplicación web Python para navegador (Render o Windows Server)**. Para las próximas pruebas, busca mensajes en Gmail personal, permite seleccionar un correo, extrae información de sus PDF adjuntos **en memoria** y agrega filas a una **hoja nativa de Google Sheets guardada en Google Drive**. La integración con Outlook y OneDrive se conserva solo como alternativa heredada.
 
@@ -94,3 +94,13 @@ Para editar una hoja de prueba ya existente:
 6. Definir `config/campos.json` según un PDF anonimizado antes de activar el procesamiento real.
 
 No colocar JSON de cuentas de servicio, tokens ni datos privados en GitHub, capturas ni mensajes de chat. Consulte [paso a paso en Render](docs/DESPLIEGUE_RENDER.md).
+
+## Plantilla original Creditos SOLE 2026 (v0.8.0)
+
+Se analizó el Excel proporcionado sin modificarlo. Contiene `DETALLE DEVOLUCION` (97 registros, siete columnas) y `SUMA TOTAL` (resumen por categoría y mes). La aplicación web se adaptó para **añadir datos a la pestaña histórica DETALLE DEVOLUCION** tras convertir el archivo en una hoja nativa de Google Sheets. La escritura utiliza una operación atómica de Google Sheets para agregar los siete valores y un registro de control en una pestaña técnica oculta `_CONTROL_PDF`; no modifica los 97 registros anteriores.
+
+Los campos esperados, en este orden, son `VARIEDAD`, `CAT`, `FINCA`, `RM`, `TOTAL`, `QC Inspection`, `MES`. Las columnas numéricas se insertan como números, y las textuales como texto literal, para no activar fórmulas maliciosas procedentes de PDF. Se validan encabezados antes de escribir.
+
+**Pendiente:** recibir un PDF de ejemplo sin datos privados para establecer los patrones de extracción de `config/campos.json`. Mientras los patrones sigan vacíos, la aplicación puede buscar correos pero no procesar PDF. La hoja de resumen `SUMA TOTAL` podría contener una tabla dinámica que no amplíe automáticamente el origen al agregar filas; verificar su rango y actualización tras convertir el Excel. Los registros históricos carecen de identificadores `document_key`; la deduplicación automática aplica a los PDF registrados por la aplicación desde la conexión inicial.
+
+[Cómo subir y convertir este archivo en Google Drive](docs/PLANTILLA_CREDITOS_SOLE.md).

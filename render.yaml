@@ -31,4 +31,6 @@ services:
       - key: GMAIL_TOKEN_FILE
         value: /tmp/depurador-pdf/token_gmail.json
       - key: GOOGLE_SHEET_TAB
-        value: Registros
+        value: DETALLE DEVOLUCION
+      - key: GOOGLE_SHEETS_TEMPLATE
+        value: creditos_sole
