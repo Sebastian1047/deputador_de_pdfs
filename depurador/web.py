@@ -19,6 +19,7 @@ from .core import leer_campos, procesar
 from .proveedores import GmailMensajeSeleccionado, GmailReader, GoogleSheetsWriter, crear_servicios_google, crear_servicio_google_sheets
 from .outlook import OutlookMensajeSeleccionado, OutlookReader, crear_cliente_outlook
 from .excel_online import ExcelOnlineWriter, GraphExcelFile, crear_excel_desde_onedrive
+from .gmail_personal import crear_servicio_gmail_personal
 
 LOG = logging.getLogger(__name__)
 CONSULTA = "has:attachment filename:pdf newer_than:30d"
@@ -42,6 +43,7 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
         PERMANENT_SESSION_LIFETIME=timedelta(hours=8),
         MAX_CONTENT_LENGTH=16 * 1024,
         GMAIL_QUERY=os.getenv("GMAIL_QUERY") or CONSULTA,
+        GMAIL_TOKEN_FILE=os.getenv("GMAIL_TOKEN_FILE") or "",
         MAIL_PROVIDER=(os.getenv("MAIL_PROVIDER") or "outlook").lower(),
         TABLE_PROVIDER=(os.getenv("TABLE_PROVIDER") or "excel_online").lower(),
         MS_EXCEL_DRIVE_ID=os.getenv("MS_EXCEL_DRIVE_ID") or "",
@@ -67,18 +69,26 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
         raise ValueError("MAIL_PROVIDER debe ser outlook o gmail")
     if app.config["TABLE_PROVIDER"] not in ("excel_online", "google_sheets"):
         raise ValueError("TABLE_PROVIDER debe ser excel_online o google_sheets")
-    if app.config["TABLE_PROVIDER"] == "excel_online" and app.config["MAIL_PROVIDER"] != "outlook":
-        raise ValueError("Excel Online requiere la identidad de Microsoft configurada con Outlook")
+    def servicio_correo():
+        """Buscar en Gmail personal sin necesitar todavía los permisos de OneDrive."""
+        if service_factory:
+            return service_factory()[0]
+        if app.config["MAIL_PROVIDER"] == "gmail":
+            if app.config["GMAIL_TOKEN_FILE"]:
+                return crear_servicio_gmail_personal(app.config["GMAIL_TOKEN_FILE"])
+            # Mantener el conector heredado Gmail + Sheets para desarrollo.
+            if app.config["TABLE_PROVIDER"] == "google_sheets":
+                return crear_servicios_google()[0]
+            raise RuntimeError("Gmail no está autorizado: configure GMAIL_TOKEN_FILE")
+        return crear_cliente_outlook()
 
-    def servicios_web():
-        if app.config["MAIL_PROVIDER"] == "outlook":
-            cliente = crear_cliente_outlook()
-            if app.config["TABLE_PROVIDER"] == "excel_online":
-                return cliente, cliente
-            return cliente, crear_servicio_google_sheets()
-        return crear_servicios_google()
-
-    servicios = service_factory or servicios_web
+    def servicio_destino():
+        if service_factory:
+            return service_factory()[1]
+        if app.config["TABLE_PROVIDER"] == "excel_online":
+            from .outlook import crear_cliente_microsoft
+            return crear_cliente_microsoft()
+        return crear_servicio_google_sheets()
 
     def nuevo_lector(cliente, filtro, cantidad):
         if app.config["MAIL_PROVIDER"] == "outlook":
@@ -202,7 +212,7 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
         with mutex:
             cache.pop(sid, None)
         try:
-            correo_cliente, _ = servicios()
+            correo_cliente = servicio_correo()
             correos = nuevo_lector(
                 correo_cliente, filtro, app.config["MAX_EMAILS"]
             ).listar_correos()
@@ -227,7 +237,8 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
     def ejecutar_proceso(sid: str, id_correo: str):
         try:
             campos = _reglas(app.config["PDF_FIELDS_FILE"])
-            cliente, destino_cliente = servicios()
+            cliente = servicio_correo()
+            destino_cliente = servicio_destino()
             lector = nuevo_lector(cliente, "", app.config["MAX_EMAILS"])
             if app.config["MAIL_PROVIDER"] == "outlook":
                 origen = OutlookMensajeSeleccionado(lector, id_correo)
