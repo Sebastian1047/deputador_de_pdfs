@@ -56,12 +56,34 @@ def cargar_credenciales(ruta_token: str | os.PathLike[str]):
     return credenciales
 
 
-def crear_servicio_gmail_personal(ruta_token: str | os.PathLike[str]):
-    """Devuelve la API Gmail autenticada sin requerir credenciales Microsoft."""
+def validar_cuenta_gmail(servicio, correo_esperado: str) -> None:
+    """Rechaza una sesión OAuth autenticada con una cuenta diferente.
+
+    Solo se compara el correo devuelto por la API oficial. Nunca se incluye el
+    correo real en el código público, los logs ni los mensajes de error.
+    """
+    esperado = correo_esperado.strip().casefold()
+    if not esperado or "@" not in esperado or len(esperado) > 254:
+        raise ValueError("GMAIL_EXPECTED_EMAIL debe contener un correo válido")
+    perfil = servicio.users().getProfile(userId="me").execute()
+    obtenido = str(perfil.get("emailAddress") or "").strip().casefold()
+    if obtenido != esperado:
+        raise PermissionError(
+            "El Gmail autorizado no coincide con GMAIL_EXPECTED_EMAIL. "
+            "Autorice la cuenta esperada en el equipo del servidor."
+        )
+
+
+def crear_servicio_gmail_personal(ruta_token: str | os.PathLike[str],
+                                 correo_esperado: str = ""):
+    """Devuelve Gmail autenticado y valida la identidad, si TI la configuró."""
     from googleapiclient.discovery import build
 
     credenciales = cargar_credenciales(ruta_token)
-    return build("gmail", "v1", credentials=credenciales, cache_discovery=False)
+    servicio = build("gmail", "v1", credentials=credenciales, cache_discovery=False)
+    if correo_esperado:
+        validar_cuenta_gmail(servicio, correo_esperado)
+    return servicio
 
 
 def autorizar_gmail(ruta_oauth: str | os.PathLike[str],
