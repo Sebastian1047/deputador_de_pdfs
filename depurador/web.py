@@ -22,6 +22,7 @@ from .outlook import OutlookMensajeSeleccionado, OutlookReader, crear_cliente_ou
 from .excel_online import ExcelOnlineWriter, GraphExcelFile, crear_excel_desde_onedrive
 from .gmail_personal import crear_servicio_gmail_personal
 from .oauth_web import iniciar_oauth, completar_oauth
+from .google_drive_sheet import GoogleSheetsCreditosWriter
 
 LOG = logging.getLogger(__name__)
 CONSULTA = "has:attachment filename:pdf newer_than:30d"
@@ -63,6 +64,7 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
         MAX_EMAILS=min(250, max(1, int(os.getenv("MAX_EMAILS") or "100"))),
         GOOGLE_SPREADSHEET_ID=os.getenv("GOOGLE_SPREADSHEET_ID", ""),
         GOOGLE_SHEET_TAB=os.getenv("GOOGLE_SHEET_TAB") or "Registros",
+        GOOGLE_SHEETS_TEMPLATE=os.getenv("GOOGLE_SHEETS_TEMPLATE") or "",
         PDF_FIELDS_FILE=os.getenv("PDF_FIELDS_FILE") or str(
             Path(__file__).resolve().parent.parent / "config" / "campos.json"
         ),
@@ -351,7 +353,16 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
                     )
                     destino = ExcelOnlineWriter(archivo, app.config["MS_EXCEL_SHEET"])
             else:
-                destino = GoogleSheetsWriter(destino_cliente, app.config["GOOGLE_SPREADSHEET_ID"], app.config["GOOGLE_SHEET_TAB"])
+                if app.config["GOOGLE_SHEETS_TEMPLATE"] == "creditos_sole":
+                    destino = GoogleSheetsCreditosWriter(
+                        destino_cliente, app.config["GOOGLE_SPREADSHEET_ID"],
+                        app.config["GOOGLE_SHEET_TAB"]
+                    )
+                else:
+                    destino = GoogleSheetsWriter(
+                        destino_cliente, app.config["GOOGLE_SPREADSHEET_ID"],
+                        app.config["GOOGLE_SHEET_TAB"]
+                    )
             resumen = procesar(origen, destino, campos)
             if app.config["TABLE_PROVIDER"] == "excel_online":
                 destino.finalizar()  # Solo se reporta éxito si el Excel se guardó correctamente.
