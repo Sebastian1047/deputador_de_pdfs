@@ -1,6 +1,6 @@
 # Desplegar la aplicación web en Render Free (pruebas)
 
-**Estado de este proyecto:** el código y `render.yaml` están preparados, pero **todavía no existe una instancia Render creada ni una URL pública verificada**. Para crearla es necesario autorizar el acceso a la cuenta Render y vincular el repositorio GitHub. Nunca revelar claves ni tokens en el chat o en GitHub.
+**Estado de este proyecto:** el código y `render.yaml` están preparados para Gmail + Google Sheets, pero **todavía no existe una instancia Render creada ni una URL pública verificada**. Para crearla es necesario autorizar el acceso a la cuenta Render y vincular el repositorio GitHub. Nunca revelar claves ni tokens en el chat o en GitHub.
 
 ## Qué ofrece Render Free
 
@@ -49,15 +49,29 @@ Una vez guardadas las variables, iniciar sesión en la web de Render y pulsar **
 
 **Advertencia importante:** en Render Free el token guardado se perderá al suspenderse el servicio después de 15 minutos sin actividad y al reiniciarse. No es apto para una conexión Gmail permanente. No emplear datos reales sensibles en un servicio gratuito sin autorización y controles adecuados.
 
-## Paso 3: análisis de PDF y Excel Online
+## Paso 3: extracción PDF y destino Google Sheets en Drive
 
-Para procesar datos reales no basta con tener Gmail conectado:
-1. Definir `config/campos.json` con los nombres y patrones a extraer de una muestra de PDF anonimizada.
-2. Autorizar por separado el acceso al Excel empresarial de Microsoft 365 / OneDrive.
-3. Trabajar primero sobre una copia del libro Excel sin datos sensibles y verificar que se mantengan fórmulas/estilos y que no haya ediciones concurrentes.
-4. Para un entorno corporativo definitivo, usar Windows Server autorizado o una infraestructura de nube aprobada con un **almacén de secretos duradero**, auditoría, controles de acceso y respaldo.
+Para las próximas pruebas el origen será Gmail y el destino una hoja nativa de **Google Sheets**, almacenada en Google Drive:
 
-**No conectar OneDrive empresarial real ni procesar información empresarial confidencial en Render Free sin permiso expreso del cliente y de TI.**
+1. En Google Cloud, proyecto **Procesador PDF JN**, habilitar **Google Sheets API** además de Gmail API.
+2. Crear una **cuenta de servicio** solo para Sheets y una clave JSON de prueba, si Google Cloud permite generar claves. El `client_email` de esa cuenta termina normalmente en `.iam.gserviceaccount.com`. No compartir la clave JSON en GitHub ni en el chat.
+3. En Google Drive, abrir una **hoja nativa de Google Sheets** de prueba, pulsar **Compartir**, agregar el `client_email` de la cuenta de servicio con permiso Editor. Compartir solo ese archivo. En organizaciones, la política de compartición externa puede impedirlo.
+4. Copiar el identificador de la URL de la hoja. Para `https://docs.google.com/spreadsheets/d/ID_DEL_DOCUMENTO/edit`, el ID es únicamente `ID_DEL_DOCUMENTO`.
+5. En Render → Servicio → Environment configurar de forma privada:
+   - `GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON` = contenido completo del JSON de cuenta de servicio (Render no debe copiarlo al repositorio).
+   - `GOOGLE_SPREADSHEET_ID` = ID del documento de Google Sheets.
+   - `GOOGLE_SHEET_TAB` = `Registros` (crear esta pestaña en el documento).
+   - `TABLE_PROVIDER` = `google_sheets` (el Blueprint ya lo configura).
+6. Definir `config/campos.json` usando un PDF de prueba anonimizado; hasta entonces se pueden buscar correos pero **no procesar sus adjuntos**. La hoja exige columnas `document_key`, `processed_utc` y campos de extracción.
+7. Probar solamente un correo con PDF ficticios y una copia de la hoja. Comprobar que los datos se anexen una vez y que la deduplicación funcione.
+
+No se requiere autorizar una segunda vez el Gmail para que la cuenta de servicio trabaje con Google Sheets. La aplicación conecta **dos identidades independientes** (Gmail OAuth solo lectura y cuenta de servicio con acceso a la hoja compartida). Esto evita otorgar permiso amplio sobre todo Google Drive.
+
+**Atención:** si el destino es un Excel `.xlsx` subido a Google Drive (en lugar de una hoja nativa de Google Sheets), esta integración no será compatible y habrá que implementar otra ruta de escritura. No transformar el Excel sin autorización del dueño.
+
+En Render Free el token Gmail guardado en disco es efímero; puede desaparecer al reiniciarse la instancia. No usar documentos reales sensibles en un plan de pruebas sin aprobación. Para producción, usar alojamiento aprobado, almacenamiento de tokens seguro y persistente, auditoría y respaldos.
+
+**No conectar carpetas privadas de Google Drive ni procesar información empresarial confidencial en Render Free sin permiso expreso del cliente y de TI.**
 
 ## Verificación y enlaces
 

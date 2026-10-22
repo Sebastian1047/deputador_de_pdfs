@@ -1,6 +1,6 @@
-# Depurador de PDF · v0.7.1
+# Depurador de PDF · v0.7.2
 
-**Aplicación web Python para Windows Server**. El usuario inicia sesión en el navegador de la empresa, busca correos en Outlook empresarial, escoge un correo específico, procesa sus PDF adjuntos **en memoria** y agrega datos a **Excel Online** en Microsoft 365.
+**Aplicación web Python para navegador (Render o Windows Server)**. Para las próximas pruebas, busca mensajes en Gmail personal, permite seleccionar un correo, extrae información de sus PDF adjuntos **en memoria** y agrega filas a una **hoja nativa de Google Sheets guardada en Google Drive**. La integración con Outlook y OneDrive se conserva solo como alternativa heredada.
 
 ## Estado del desarrollo
 
@@ -80,3 +80,17 @@ La credencial elegida en Google Cloud debe ser del tipo **Aplicación web** (no 
 Se añadió `render.yaml` para crear **un servicio web Python real, no GitHub Pages**. El plan Free permite abrir el panel en celular o computador tras conectar Render a GitHub y crear el servicio. **Todavía no se ha desplegado una URL** porque hace falta que el propietario conecte su cuenta Render. La aplicación requiere contraseña fuerte, configurada exclusivamente como secreto Render, y ofrece `/health` para comprobación.
 
 Consulte [Cómo desplegar en Render](docs/DESPLIEGUE_RENDER.md). **Solo para desarrollo sin datos sensibles:** Render Free suspende el servicio y borra los tokens guardados localmente en cada suspensión/reinicio. Nunca subir JSON OAuth ni tokens a GitHub. La conexión permanente de Gmail y la información confidencial requerirán almacenamiento duradero y entorno aprobado.
+
+## Google Drive como destino de pruebas (v0.7.2)
+
+**Configuración Render actual:** `MAIL_PROVIDER=gmail` y `TABLE_PROVIDER=google_sheets`. Este flujo alimenta una **hoja nativa de Google Sheets alojada en Google Drive**; NO actualiza directamente un Excel `.xlsx` almacenado en Google Drive. Para ese segundo formato se requiere otra implementación.
+
+Para editar una hoja de prueba ya existente:
+1. Habilitar **Google Sheets API** en el mismo proyecto Google Cloud.
+2. Crear una cuenta de servicio de Google Cloud con acceso mínimo y generar una clave JSON de prueba si la política organizacional lo permite.
+3. Compartir **solo la hoja específica de Google Drive** con el correo de la cuenta de servicio y permiso **Editor**.
+4. En **Render → Environment**, guardar `GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON` con el contenido del JSON y `GOOGLE_SPREADSHEET_ID` con el identificador de la URL del documento. `GOOGLE_SHEET_TAB` inicialmente es `Registros`.
+5. Mantener aparte la autorización OAuth de Gmail: `gmail.readonly` no permite editar Sheets. La cuenta de servicio no puede leer el Gmail del usuario.
+6. Definir `config/campos.json` según un PDF anonimizado antes de activar el procesamiento real.
+
+No colocar JSON de cuentas de servicio, tokens ni datos privados en GitHub, capturas ni mensajes de chat. Consulte [paso a paso en Render](docs/DESPLIEGUE_RENDER.md).

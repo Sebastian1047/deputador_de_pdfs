@@ -103,7 +103,7 @@ tbody tr.pick{cursor:pointer}tbody tr.pick:hover{background:#f6fbf7}tbody tr.sel
 <div class="layout">
 <div>
 <section class="card" aria-labelledby="title-search">
-<div class="cardhead"><div><h3 id="title-search"><span class="step">01</span> Buscar correos de Outlook</h3><p>Filtro de remitente o asunto · datos ficticios</p></div><span class="state">● Conexión simulada</span></div>
+<div class="cardhead"><div><h3 id="title-search"><span class="step">01</span> Buscar correos de Gmail</h3><p>Filtro de remitente o asunto · datos ficticios</p></div><span class="state">● Conexión simulada</span></div>
 <div class="cardbody"><div class="searchbar">
 <div class="searchwrap">
 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10.8" cy="10.8" r="6.5"/><path d="m16 16 5 5"/></svg>
@@ -156,7 +156,7 @@ tbody tr.pick{cursor:pointer}tbody tr.pick:hover{background:#f6fbf7}tbody tr.sel
 <section class="card">
 <div class="cardhead"><h3>Flujo de trabajo</h3></div>
 <div class="sidebarbody">
-<div class="item"><div class="ico">1</div><div><strong>Buscar un correo</strong><small>Filtrar mensajes de Outlook.</small></div></div>
+<div class="item"><div class="ico">1</div><div><strong>Buscar un correo</strong><small>Filtrar mensajes de Gmail.</small></div></div>
 <div class="item"><div class="ico">2</div><div><strong>Elegir el mensaje</strong><small>Revisar remitente, fecha y número de PDF.</small></div></div>
 <div class="item"><div class="ico">3</div><div><strong>Procesar PDF</strong><small>Extraer datos y revisar duplicados.</small></div></div>
 <div class="item"><div class="ico">4</div><div><strong>Actualizar hoja</strong><small>Agregar registros a Google Sheets.</small></div></div>
@@ -228,7 +228,7 @@ texto("excel-state",ejemploFilas.length+" filas de ejemplo");
 function procesar(){
 if(procesando||!elegida)return;
 var mail=correos.find(function(c){return c.id===elegida;});if(!mail)return;
-if(!window.confirm("DEMOSTRACIÓN: ¿Simular el procesamiento de los "+mail.pdf+" PDF del correo «"+mail.asunto+"»? No se accederá a Outlook ni a Excel real."))return;
+if(!window.confirm("DEMOSTRACIÓN: ¿Simular el procesamiento de los "+mail.pdf+" PDF del correo «"+mail.asunto+"»? No se accederá a Gmail ni a Google Sheets reales."))return;
 procesando=true;$("btn-search").disabled=true;$("btn-process").disabled=true;
 texto("process-state","Simulando...");$("process-state").className="state wait";
 texto("log","Simulando lectura de "+mail.pdf+" adjuntos PDF en memoria...");
