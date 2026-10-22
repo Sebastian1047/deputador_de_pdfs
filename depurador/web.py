@@ -44,6 +44,7 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
         MAX_CONTENT_LENGTH=16 * 1024,
         GMAIL_QUERY=os.getenv("GMAIL_QUERY") or CONSULTA,
         GMAIL_TOKEN_FILE=os.getenv("GMAIL_TOKEN_FILE") or "",
+        GMAIL_EXPECTED_EMAIL=os.getenv("GMAIL_EXPECTED_EMAIL") or "",
         MAIL_PROVIDER=(os.getenv("MAIL_PROVIDER") or "outlook").lower(),
         TABLE_PROVIDER=(os.getenv("TABLE_PROVIDER") or "excel_online").lower(),
         MS_EXCEL_DRIVE_ID=os.getenv("MS_EXCEL_DRIVE_ID") or "",
@@ -75,6 +76,9 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
             return service_factory()[0]
         if app.config["MAIL_PROVIDER"] == "gmail":
             if app.config["GMAIL_TOKEN_FILE"]:
+                esperado = app.config["GMAIL_EXPECTED_EMAIL"]
+                if esperado:
+                    return crear_servicio_gmail_personal(app.config["GMAIL_TOKEN_FILE"], esperado)
                 return crear_servicio_gmail_personal(app.config["GMAIL_TOKEN_FILE"])
             # Mantener el conector heredado Gmail + Sheets para desarrollo.
             if app.config["TABLE_PROVIDER"] == "google_sheets":
