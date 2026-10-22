@@ -1,4 +1,4 @@
-# Depurador de PDF · v0.6.2
+# Depurador de PDF · v0.7.0
 
 **Aplicación web Python para Windows Server**. El usuario inicia sesión en el navegador de la empresa, busca correos en Outlook empresarial, escoge un correo específico, procesa sus PDF adjuntos **en memoria** y agrega datos a **Excel Online** en Microsoft 365.
 
@@ -73,3 +73,10 @@ El repositorio incluye las rutas de servidor `POST /oauth/google/conectar` y `GE
 Guía: [OAuth Gmail desde la aplicación web](docs/OAUTH_GMAIL_WEB.md).
 
 La credencial elegida en Google Cloud debe ser del tipo **Aplicación web** (no la de aplicación de escritorio usada por el flujo local opcional anterior). No almacenar el secreto OAuth, tokens ni PDFs de usuarios en el repositorio público.
+
+
+## Hosting web gratuito para pruebas (Render Free)
+
+Se añadió `render.yaml` para crear **un servicio web Python real, no GitHub Pages**. El plan Free permite abrir el panel en celular o computador tras conectar Render a GitHub y crear el servicio. **Todavía no se ha desplegado una URL** porque hace falta que el propietario conecte su cuenta Render. La aplicación requiere contraseña fuerte, configurada exclusivamente como secreto Render, y ofrece `/health` para comprobación.
+
+Consulte [Cómo desplegar en Render](docs/DESPLIEGUE_RENDER.md). **Solo para desarrollo sin datos sensibles:** Render Free suspende el servicio y borra los tokens guardados localmente en cada suspensión/reinicio. Nunca subir JSON OAuth ni tokens a GitHub. La conexión permanente de Gmail y la información confidencial requerirán almacenamiento duradero y entorno aprobado.
