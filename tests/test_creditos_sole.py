@@ -42,6 +42,8 @@ class SheetsFake:
             return Peticion({"values": self.rows})
         if kwargs["range"] == "'_CONTROL_PDF'!A2:A":
             return Peticion({"values": [["gmail:id-antiguo:1"]]})
+        if kwargs["range"] == "'DETALLE DEVOLUCION'!F2:F":
+            return Peticion({"values": [["31409"]]})
         raise AssertionError("Rango inesperado")
 
     def batchUpdate(self, **kwargs):
@@ -79,7 +81,7 @@ def test_append_plantilla_y_deduplicacion_es_atomica():
     writer = GoogleSheetsCreditosWriter(service, "fake-id")
     writer.claves_existentes(fields())
     writer.agregar("gmail:nuevo:1", "2026-10-22T18:00:00Z", [
-        "=UNSAFE", "PO", "JN", "12", "16,26", "31409", "3"
+        "=UNSAFE", "PO", "JN", "12", "16,26", "98765", "3"
     ])
     calls = [arg for name, arg in service.calls if name == "batchUpdate"]
     assert len(calls) == 1
@@ -91,11 +93,12 @@ def test_append_plantilla_y_deduplicacion_es_atomica():
     assert row[0]["userEnteredValue"] == {"stringValue": "=UNSAFE"}
     assert row[3]["userEnteredValue"] == {"numberValue": 12.0}
     assert row[4]["userEnteredValue"] == {"numberValue": 16.26}
-    assert row[5]["userEnteredValue"] == {"numberValue": 31409.0}
+    assert row[5]["userEnteredValue"] == {"numberValue": 98765.0}
     assert row[6]["userEnteredValue"] == {"numberValue": 3.0}
     assert requests[1]["appendCells"]["rows"][0]["values"][0]["userEnteredValue"] == {
         "stringValue": "gmail:nuevo:1"
     }
+    assert writer.es_registro_historico(["=UNSAFE", "PO", "JN", "12", "16,26", "98765", "3"])
 
 
 def test_template_rejects_incorrect_columns_before_any_mutation():
@@ -113,3 +116,19 @@ def test_template_rejects_invalid_month_and_injected_numeric():
         _numero("=HYPERLINK('example')", 4)
     with pytest.raises(ValueError, match="números enteros"):
         _numero("3.25", 3)
+
+
+
+def test_plantilla_bloquea_credito_ya_en_historico():
+    service = SheetsFake()
+    writer = GoogleSheetsCreditosWriter(service, "fake-id")
+    writer.claves_existentes(fields())
+    assert writer.es_registro_historico(["Pom Green Daisy", "PO", "JN", "12", "15", "31409", "1"])
+    with pytest.raises(ValueError, match="ya existente"):
+        writer.agregar("gmail:nuevo:1", "2026-10-22T18:00:00Z", [
+            "Pom Green Daisy", "PO", "JN", "12", "15", "31409", "1"
+        ])
+    assert not any(
+        call["body"]["requests"][0].get("appendCells")
+        for typ, call in service.calls if typ == "batchUpdate"
+    )
