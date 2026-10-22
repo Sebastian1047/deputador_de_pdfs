@@ -63,3 +63,15 @@ def test_blueprint_no_incluye_secreto_real():
     assert "WEB_ADMIN_PASSWORD" in texto and "sync: false" in texto
     assert "MAIL_PROVIDER" in texto and "value: gmail" in texto
     assert "/health" in texto
+
+
+def test_cli_hash_password_works(monkeypatch, capsys):
+    """Previene fallos de importación del punto de entrada usado en Render."""
+    import sys
+    import getpass
+    from depurador.web import main
+    from werkzeug.security import check_password_hash
+    monkeypatch.setattr(sys, "argv", ["depurador.web", "--hash-password"])
+    monkeypatch.setattr(getpass, "getpass", lambda prompt: "clave-prueba-12345")
+    main()
+    assert check_password_hash(capsys.readouterr().out.strip(), "clave-prueba-12345")

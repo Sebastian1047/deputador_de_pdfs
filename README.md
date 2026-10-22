@@ -1,4 +1,4 @@
-# Depurador de PDF · v0.7.0
+# Depurador de PDF · v0.7.1
 
 **Aplicación web Python para Windows Server**. El usuario inicia sesión en el navegador de la empresa, busca correos en Outlook empresarial, escoge un correo específico, procesa sus PDF adjuntos **en memoria** y agrega datos a **Excel Online** en Microsoft 365.
 
