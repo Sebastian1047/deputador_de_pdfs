@@ -20,6 +20,7 @@ from .proveedores import GmailMensajeSeleccionado, GmailReader, GoogleSheetsWrit
 from .outlook import OutlookMensajeSeleccionado, OutlookReader, crear_cliente_outlook
 from .excel_online import ExcelOnlineWriter, GraphExcelFile, crear_excel_desde_onedrive
 from .gmail_personal import crear_servicio_gmail_personal
+from .oauth_web import iniciar_oauth, completar_oauth
 
 LOG = logging.getLogger(__name__)
 CONSULTA = "has:attachment filename:pdf newer_than:30d"
@@ -44,6 +45,8 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
         MAX_CONTENT_LENGTH=16 * 1024,
         GMAIL_QUERY=os.getenv("GMAIL_QUERY") or CONSULTA,
         GMAIL_TOKEN_FILE=os.getenv("GMAIL_TOKEN_FILE") or "",
+        GMAIL_OAUTH_CLIENT_FILE=os.getenv("GMAIL_OAUTH_CLIENT_FILE") or "",
+        GMAIL_REDIRECT_URI=os.getenv("GMAIL_REDIRECT_URI") or "",
         GMAIL_EXPECTED_EMAIL=os.getenv("GMAIL_EXPECTED_EMAIL") or "",
         MAIL_PROVIDER=(os.getenv("MAIL_PROVIDER") or "outlook").lower(),
         TABLE_PROVIDER=(os.getenv("TABLE_PROVIDER") or "excel_online").lower(),
@@ -203,7 +206,72 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
                          else bool(app.config["GOOGLE_SPREADSHEET_ID"])),
             destino_nombre=("Excel Online" if app.config["TABLE_PROVIDER"] == "excel_online"
                             else "Google Sheets"),
+            gmail_modo=app.config["MAIL_PROVIDER"] == "gmail",
+            gmail_oauth_preparado=bool(
+                app.config["GMAIL_OAUTH_CLIENT_FILE"]
+                and app.config["GMAIL_REDIRECT_URI"]
+                and app.config["GMAIL_TOKEN_FILE"]
+                and app.config["GMAIL_EXPECTED_EMAIL"]
+            ),
         )
+
+    @app.post("/oauth/google/conectar")
+    @requiere_login
+    def vincular_gmail_web():
+        """Solo el administrador autenticado inicia OAuth desde el panel privado."""
+        if app.config["MAIL_PROVIDER"] != "gmail":
+            abort(404)
+        if not all((
+            app.config["GMAIL_OAUTH_CLIENT_FILE"], app.config["GMAIL_REDIRECT_URI"],
+            app.config["GMAIL_TOKEN_FILE"], app.config["GMAIL_EXPECTED_EMAIL"],
+        )):
+            flash("Pendiente configurar OAuth web en el servidor.", "error")
+            return redirect(url_for("inicio"))
+        try:
+            url, estado = iniciar_oauth(
+                app.config["GMAIL_OAUTH_CLIENT_FILE"], app.config["GMAIL_REDIRECT_URI"]
+            )
+            session["gmail_oauth_state"] = estado
+            session["gmail_oauth_inicio"] = time.time()
+            return redirect(url, code=303)
+        except (OSError, ValueError, RuntimeError) as exc:
+            LOG.warning("No se pudo iniciar la autorización Gmail: %s", type(exc).__name__)
+            flash("No fue posible iniciar la autorización. Revise OAuth en Windows Server.", "error")
+            return redirect(url_for("inicio"))
+
+    @app.get("/oauth/google/callback")
+    @requiere_login
+    def retorno_gmail_web():
+        """Google devuelve el código al servidor, nunca a GitHub Pages."""
+        if app.config["MAIL_PROVIDER"] != "gmail":
+            abort(404)
+        esperado = session.pop("gmail_oauth_state", None)
+        iniciado = session.pop("gmail_oauth_inicio", 0)
+        recibido = request.args.get("state", "")
+        if (
+            not esperado or not recibido or not hmac.compare_digest(esperado, recibido)
+            or time.time() - iniciado > 600 or time.time() < iniciado
+        ):
+            abort(400, description="Estado de autorización inválido o vencido")
+        if request.args.get("error"):
+            flash("Se canceló o rechazó la autorización de Gmail.", "error")
+            return redirect(url_for("inicio"))
+        codigo = request.args.get("code", "")
+        if not codigo:
+            abort(400, description="Falta el código de autorización")
+        try:
+            completar_oauth(
+                app.config["GMAIL_OAUTH_CLIENT_FILE"],
+                app.config["GMAIL_REDIRECT_URI"],
+                esperado, codigo,
+                app.config["GMAIL_TOKEN_FILE"],
+                app.config["GMAIL_EXPECTED_EMAIL"],
+            )
+            flash("Gmail autorizado correctamente. Puede buscar correos con PDF.", "exito")
+        except (OSError, ValueError, RuntimeError, PermissionError) as exc:
+            LOG.warning("Fallo de autorización Google: %s", type(exc).__name__)
+            flash("La vinculación de Gmail no se completó. Revise configuración y cuenta.", "error")
+        return redirect(url_for("inicio"))
 
     @app.post("/buscar")
     @requiere_login
