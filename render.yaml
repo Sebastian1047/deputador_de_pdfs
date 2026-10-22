@@ -15,7 +15,7 @@ services:
       - key: MAIL_PROVIDER
         value: gmail
       - key: TABLE_PROVIDER
-        value: excel_online
+        value: google_sheets
       - key: WEB_HOST
         value: 0.0.0.0
       - key: WEB_PORT
@@ -30,3 +30,9 @@ services:
         sync: false
       - key: GMAIL_TOKEN_FILE
         value: /tmp/depurador-pdf/token_gmail.json
+      - key: GOOGLE_SPREADSHEET_ID
+        sync: false
+      - key: GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: GOOGLE_SHEET_TAB
+        value: Registros

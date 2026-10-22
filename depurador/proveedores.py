@@ -208,6 +208,23 @@ def crear_servicio_google_sheets():
     from google.oauth2.credentials import Credentials
     from googleapiclient.discovery import build
 
+    # Credencial separada del buzón Gmail. El dueño de la hoja comparte
+    # solamente el archivo de Google Sheets a este email de cuenta de servicio.
+    servicio_json = os.getenv("GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON") or ""
+    if servicio_json:
+        import json
+        from google.oauth2 import service_account
+
+        if len(servicio_json) > 64 * 1024:
+            raise ValueError("Credenciales Google Sheets demasiado grandes")
+        metadata = json.loads(servicio_json)
+        if not isinstance(metadata, dict) or metadata.get("type") != "service_account":
+            raise ValueError("Debe suministrar una cuenta de servicio Google válida")
+        cuenta = service_account.Credentials.from_service_account_info(
+            metadata, scopes=["https://www.googleapis.com/auth/spreadsheets"]
+        )
+        return build("sheets", "v4", credentials=cuenta, cache_discovery=False)
+
     requeridas = ("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REFRESH_TOKEN")
     faltan = [variable for variable in requeridas if not os.getenv(variable)]
     if faltan:
