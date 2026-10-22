@@ -1,4 +1,4 @@
-# Depurador de PDF · v0.6.0
+# Depurador de PDF · v0.6.1
 
 **Aplicación web Python para Windows Server**. El usuario inicia sesión en el navegador de la empresa, busca correos en Outlook empresarial, escoge un correo específico, procesa sus PDF adjuntos **en memoria** y agrega datos a **Excel Online** en Microsoft 365.
 
@@ -59,3 +59,6 @@ Ya se permite usar Gmail personal como fuente de PDF y Excel Online como destino
 Manual de autorización de Gmail en el servidor: docs/CONECTAR_GMAIL_PERSONAL.md
 
 Nunca compartir contraseña, token ni credenciales JSON en GitHub o ChatGPT. La versión pública de demostración no se conecta a Gmail real.
+
+
+**Protección adicional para Gmail personal:** configure en el Windows Server la variable privada `GMAIL_EXPECTED_EMAIL` con la dirección del buzón que realmente recibe los PDF. El sistema verifica que la cuenta autorizada por OAuth coincide antes de listar mensajes, sin guardar esa dirección en el repositorio.

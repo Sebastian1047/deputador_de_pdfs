@@ -83,3 +83,71 @@ def test_token_solo_lectura_rechaza_token_sin_refresh(tmp_path):
     }), encoding="utf-8")
     with pytest.raises(RuntimeError, match="renovación"):
         cargar_credenciales(str(archivo))
+
+
+
+def test_validacion_gmail_permite_la_cuenta_exacta_sin_distinguir_mayusculas():
+    from depurador.gmail_personal import validar_cuenta_gmail
+
+    class Get:
+        def execute(self):
+            return {"emailAddress": "PRUEBAS@EXAMPLE.COM"}
+    class Users:
+        def getProfile(self, userId):
+            assert userId == "me"
+            return Get()
+    class Gmail:
+        def users(self):
+            return Users()
+    validar_cuenta_gmail(Gmail(), "pruebas@example.com")
+
+
+def test_validacion_gmail_rechaza_cuenta_incorrecta_sin_revelar_identidad():
+    from depurador.gmail_personal import validar_cuenta_gmail
+
+    class Get:
+        def execute(self):
+            return {"emailAddress": "otra@example.com"}
+    class Users:
+        def getProfile(self, userId):
+            return Get()
+    class Gmail:
+        def users(self):
+            return Users()
+    with pytest.raises(PermissionError, match="no coincide") as error:
+        validar_cuenta_gmail(Gmail(), "pruebas@example.com")
+    assert "otra@example.com" not in str(error.value)
+    assert "pruebas@example.com" not in str(error.value)
+
+
+def test_servidor_transmite_solo_la_cuenta_esperada_al_conector(tmp_path, monkeypatch):
+    configuraciones = []
+    monkeypatch.setattr(
+        web, "crear_servicio_gmail_personal",
+        lambda ruta, esperado: configuraciones.append((ruta, esperado)) or "GMAIL_FICTICIO"
+    )
+    app = web.create_app({
+        "TESTING": True,
+        "SECRET_KEY": "x" * 48,
+        "MAIL_PROVIDER": "gmail",
+        "TABLE_PROVIDER": "excel_online",
+        "GMAIL_TOKEN_FILE": str(tmp_path / "token.json"),
+        "GMAIL_EXPECTED_EMAIL": "pruebas@example.com",
+    })
+    # Para ejercitar el flujo protegido, usar rutas de la misma manera que la interfaz.
+    # No es necesario conectarse a Google ni proporcionar credenciales reales.
+    from werkzeug.security import generate_password_hash
+    app.config["ADMIN_USER"] = "analista"
+    app.config["ADMIN_PASSWORD_HASH"] = generate_password_hash("contrasena-segura")
+    app.config["SESSION_COOKIE_SECURE"] = False
+    client = app.test_client()
+    html = client.get("/login").data
+    csrf = re.search(rb'name="_csrf" value="([^"]+)"', html).group(1).decode()
+    client.post("/login", data={
+        "_csrf": csrf, "usuario": "analista", "clave": "contrasena-segura"
+    })
+    html = client.get("/").data
+    csrf = re.search(rb'name="_csrf" value="([^"]+)"', html).group(1).decode()
+    # GmailReader real no puede consultar datos ficticios, pero el servicio se llamó y se validó.
+    client.post("/buscar", data={"_csrf": csrf, "filtro": "filename:pdf"})
+    assert configuraciones == [(str(tmp_path / "token.json"), "pruebas@example.com")]

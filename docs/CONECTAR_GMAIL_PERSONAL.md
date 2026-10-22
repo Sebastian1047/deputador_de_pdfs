@@ -76,3 +76,14 @@ trabajar sobre documentos empresariales.
 
 La demo pública de GitHub es únicamente ilustrativa. No autoriza Gmail, no
 descarga PDF y no escribe en Excel.
+
+
+## Proteger la conexión contra la selección de un Gmail equivocado
+
+El servidor ofrece la variable adicional **`GMAIL_EXPECTED_EMAIL`**. TI deberá establecer su valor en la configuración privada del servidor con **la dirección completa de Gmail que recibe los PDF**. La dirección real NO se incluye en este repositorio público.
+
+    GMAIL_EXPECTED_EMAIL=<correo personal autorizado>
+
+Cuando el servidor lee Gmail, consulta el perfil del usuario autenticado con `users.getProfile` y verifica que coincide con esta variable. Si al iniciar sesión en Google se eligió otra cuenta, el sistema rechaza la conexión antes de consultar mensajes. La contraseña no se transmite a la aplicación.
+
+No compartir el token `GMAIL_TOKEN_FILE`, el archivo OAuth `client_secret_*.json` ni contraseñas por chat o GitHub. La dirección del correo no concede acceso por sí sola.
