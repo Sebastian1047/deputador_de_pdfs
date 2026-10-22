@@ -1,0 +1,32 @@
+# Demo/validación en Render Free: NUNCA almacenar aquí secretos ni PDF reales.
+services:
+  - type: web
+    name: depurador-pdf-jn
+    runtime: python
+    plan: free
+    branch: main
+    buildCommand: pip install -r requirements-web.txt
+    startCommand: python -m depurador.web
+    healthCheckPath: /health
+    autoDeployTrigger: 'off'
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.9
+      - key: MAIL_PROVIDER
+        value: gmail
+      - key: TABLE_PROVIDER
+        value: excel_online
+      - key: WEB_HOST
+        value: 0.0.0.0
+      - key: WEB_PORT
+        value: '10000'
+      - key: WEB_SECURE_COOKIES
+        value: 'true'
+      - key: WEB_SECRET_KEY
+        generateValue: true
+      - key: WEB_ADMIN_USER
+        value: administrador
+      - key: WEB_ADMIN_PASSWORD
+        sync: false
+      - key: GMAIL_TOKEN_FILE
+        value: /tmp/depurador-pdf/token_gmail.json
