@@ -6,6 +6,7 @@ import hmac
 import json
 import logging
 from itertools import islice
+from io import BytesIO
 import os
 import secrets
 import threading
@@ -14,7 +15,7 @@ from datetime import date, timedelta
 from functools import wraps
 from pathlib import Path
 
-from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
+from flask import Flask, abort, flash, redirect, render_template, request, session, send_file, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from .core import Campo, leer_campos, procesar
@@ -27,6 +28,7 @@ from .google_drive_sheet import COLUMNAS as COLUMNAS_SOLE, GoogleSheetsCreditosW
 from .google_sheet_checks import comprobar_hoja_creditos
 from .sole_pdf import extraer_credito_sole
 from .filtros_creditos import MESES, anos_disponibles, consulta_creditos, periodo_predeterminado
+from .reportes import ANIO_HISTORICO, crear_imagen_resumen, leer_reporte_sole, numero_es, validar_periodo
 
 LOG = logging.getLogger(__name__)
 CONSULTA = "has:attachment filename:pdf newer_than:30d"
@@ -75,6 +77,9 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
         GOOGLE_SPREADSHEET_ID=os.getenv("GOOGLE_SPREADSHEET_ID", ""),
         GOOGLE_SHEET_TAB=os.getenv("GOOGLE_SHEET_TAB") or "Registros",
         GOOGLE_SHEETS_TEMPLATE=os.getenv("GOOGLE_SHEETS_TEMPLATE") or "",
+        GOOGLE_SHEETS_HISTORICAL_YEAR=int(
+            os.getenv("GOOGLE_SHEETS_HISTORICAL_YEAR") or str(ANIO_HISTORICO)
+        ),
         PDF_FIELDS_FILE=os.getenv("PDF_FIELDS_FILE") or str(
             Path(__file__).resolve().parent.parent / "config" / "campos.json"
         ),
@@ -145,6 +150,7 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
         return session["_csrf"]
 
     app.jinja_env.globals["csrf_token"] = csrf_token
+    app.jinja_env.filters["numero_es"] = numero_es
 
     @app.after_request
     def cabeceras(response):
@@ -239,9 +245,42 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
         elegido = session.get("periodo_creditos") or {}
         with mutex:
             estado = dict(estados.get(sid, {"estado": "pendiente"}))
+        reportes_disponibles = (
+            app.config["TABLE_PROVIDER"] == "google_sheets"
+            and app.config["GOOGLE_SHEETS_TEMPLATE"] == "creditos_sole"
+        )
+        reporte = None
+        reporte_error = None
+        reporte_vista = request.args.get("vista", "detalle")
+        if reporte_vista not in ("detalle", "resumen"):
+            reporte_vista = "detalle"
+        reporte_anio, reporte_mes = pred_anio, pred_mes
+        if request.args.get("anio") or request.args.get("mes"):
+            try:
+                reporte_anio = int(request.args.get("anio", ""))
+                reporte_mes = int(request.args.get("mes", ""))
+                validar_periodo(reporte_anio, reporte_mes)
+                if reportes_disponibles:
+                    reporte = leer_reporte_sole(
+                        servicio_destino(), app.config["GOOGLE_SPREADSHEET_ID"],
+                        app.config["GOOGLE_SHEET_TAB"], reporte_anio, reporte_mes,
+                        app.config["GOOGLE_SHEETS_HISTORICAL_YEAR"],
+                    )
+            except (ValueError, TypeError, OverflowError) as exc:
+                reporte_error = "Seleccione un año y un mes válidos para consultar."
+            except Exception as exc:
+                LOG.warning("No se pudo consultar el informe (%s)", type(exc).__name__)
+                reporte_error = ("No se pudo consultar Google Sheets. "
+                                 "Verifique la conexión y los encabezados de la hoja.")
         return render_template(
             "inicio.html",
             correos=seleccion["correos"] if seleccion else [],
+            reporte_disponible=reportes_disponibles,
+            reporte=reporte,
+            reporte_error=reporte_error,
+            reporte_anio=reporte_anio,
+            reporte_mes=reporte_mes,
+            reporte_vista=reporte_vista,
             filtro=seleccion["filtro"] if seleccion else (
                 app.config["OUTLOOK_QUERY"] if app.config["MAIL_PROVIDER"] == "outlook"
                 else app.config["GMAIL_QUERY"]
@@ -269,6 +308,35 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
                 and app.config["GMAIL_TOKEN_FILE"]
                 and app.config["GMAIL_EXPECTED_EMAIL"]
             ),
+        )
+
+    @app.get("/informes/resumen.png")
+    @requiere_login
+    def descargar_resumen_png():
+        if not (app.config["TABLE_PROVIDER"] == "google_sheets"
+                and app.config["GOOGLE_SHEETS_TEMPLATE"] == "creditos_sole"):
+            abort(404)
+        try:
+            anio = int(request.args.get("anio", ""))
+            mes = int(request.args.get("mes", ""))
+            validar_periodo(anio, mes)
+        except (ValueError, TypeError, OverflowError):
+            abort(400, description="Período inválido")
+        try:
+            reporte = leer_reporte_sole(
+                servicio_destino(), app.config["GOOGLE_SPREADSHEET_ID"],
+                app.config["GOOGLE_SHEET_TAB"], anio, mes,
+                app.config["GOOGLE_SHEETS_HISTORICAL_YEAR"],
+            )
+            contenido = crear_imagen_resumen(reporte)
+        except Exception as exc:
+            LOG.warning("No se pudo crear imagen de resumen (%s)", type(exc).__name__)
+            flash("No se pudo descargar la imagen del resumen.", "error")
+            return redirect(url_for("inicio", anio=anio, mes=mes, vista="resumen") + "#consulta")
+        return send_file(
+            BytesIO(contenido), mimetype="image/png", as_attachment=True,
+            download_name=f"Resumen_Creditos_SOLE_{MESES[mes-1].capitalize()}_{anio}.png",
+            max_age=0,
         )
 
     @app.post("/oauth/google/conectar")
@@ -448,12 +516,16 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
                         destino_cliente, app.config["GOOGLE_SPREADSHEET_ID"],
                         app.config["GOOGLE_SHEET_TAB"]
                     )
-            extractor = (
-                extraer_credito_sole
-                if app.config["TABLE_PROVIDER"] == "google_sheets"
-                and app.config["GOOGLE_SHEETS_TEMPLATE"] == "creditos_sole"
-                else None
-            )
+            extractor = None
+            if (app.config["TABLE_PROVIDER"] == "google_sheets"
+                    and app.config["GOOGLE_SHEETS_TEMPLATE"] == "creditos_sole"):
+                def extractor_sole_anual(contenido, campos_pdf):
+                    valores, anio_credito = extraer_credito_sole(
+                        contenido, campos_pdf, incluir_anio=True
+                    )
+                    destino.anio_credito_actual = anio_credito
+                    return valores
+                extractor = extractor_sole_anual
             if extractor is None:
                 resumen = procesar(origen, destino, campos)
             else:
