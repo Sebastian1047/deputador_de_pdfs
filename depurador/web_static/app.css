@@ -27,3 +27,28 @@ tbody tr:hover{background:#f5faf7}.cantidad{text-align:center;font-weight:700}
 .resumen span{display:block;font-size:12px;color:#5a7765}.resumen strong{display:block;font-size:26px}
 .acceso{max-width:510px}.acceso .panel{margin-top:36px}.acceso input{margin-bottom:12px}.acceso button{width:100%;margin-top:5px}
 @media(max-width:600px){.busqueda-periodo{grid-template-columns:1fr 1fr;gap:8px}.busqueda-periodo button{grid-column:1/-1}.fila{flex-direction:column}.cabecera{align-items:flex-start}.resumen{grid-template-columns:repeat(2,minmax(0,1fr))}header h1{font-size:22px}.panel{padding:16px}}
+
+
+/* Informe mensual integrado en el panel, compatible con móvil. */
+#consulta{scroll-margin-top:20px}
+.reporte-periodo{margin-top:24px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.reporte-periodo h3{font-size:23px;margin:3px 0 10px;color:#154c36}
+.reporte-etiqueta{font-size:11px;font-weight:800;letter-spacing:.1em;color:#5e7969}
+.reporte-tabs{display:flex;align-items:center;gap:8px;border-bottom:1px solid #d9e8de;margin:15px 0 20px;padding-bottom:9px}
+.reporte-tabs a{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;color:#266247;background:#edf4ef;font-weight:700;font-size:14px;border-radius:9px;padding:12px 19px;min-height:44px}
+.reporte-tabs a:hover{background:#ceeada}
+.reporte-tabs a.activo{background:#afe5bd;color:#103d2b;box-shadow:inset 0 0 0 2px #39965d}
+.reporte-tabla table{min-width:850px}.reporte-tabla tbody tr:nth-child(even){background:#f7faf8}
+td.numero,th.numero{text-align:right;font-variant-numeric:tabular-nums}
+.reporte-sin-registros{text-align:center;color:#708477;padding:23px}
+.reporte-resumen{border:1px solid #d5e7db;border-radius:15px;overflow:hidden;max-width:780px;margin-bottom:18px}
+.reporte-resumen-cabecera{display:flex;align-items:center;justify-content:space-between;gap:18px;background:#0e503a;color:white;padding:20px 24px}
+.reporte-resumen-cabecera span:not(.etiqueta){font-size:11px;letter-spacing:.1em;color:#d0e9da;font-weight:800}
+.reporte-resumen-cabecera h3{font-size:23px;margin:4px 0 0;color:white}
+.reporte-resumen-filas{padding:7px 24px;background:white}
+.reporte-resumen-fila{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #edf1ee;padding:14px 0;font-size:16px}
+.reporte-resumen-fila strong,.reporte-total strong{font-variant-numeric:tabular-nums}
+.reporte-total{display:flex;align-items:center;justify-content:space-between;padding:19px 24px;background:#dff2e5;color:#134c35;font-size:20px;font-weight:800}
+.boton-descargar{display:inline-flex;text-decoration:none;background:#136247;color:white;border-radius:9px;padding:11px 18px;align-items:center;justify-content:center;font-weight:700}
+.boton-descargar:hover{background:#0b4b35}
+@media(max-width:600px){.reporte-tabs{gap:7px}.reporte-tabs a{flex:1;padding:10px 6px;font-size:12px}.reporte-resumen-cabecera{padding:16px}.reporte-resumen-filas{padding:5px 16px}.reporte-total{padding:17px 16px}.reporte-periodo{align-items:flex-start}}
