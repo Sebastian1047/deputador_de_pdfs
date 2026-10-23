@@ -42,6 +42,8 @@ class SheetsFake:
             return Peticion({"values": self.rows})
         if kwargs["range"] == "'_CONTROL_PDF'!A2:A":
             return Peticion({"values": [["gmail:id-antiguo:1"]]})
+        if kwargs["range"] == "'_CONTROL_PDF'!C2:D":
+            return Peticion({"values": []})
         if kwargs["range"] == "'DETALLE DEVOLUCION'!F2:F":
             return Peticion({"values": [["31409"]]})
         raise AssertionError("Rango inesperado")
@@ -132,3 +134,22 @@ def test_plantilla_bloquea_credito_ya_en_historico():
         call["body"]["requests"][0].get("appendCells")
         for typ, call in service.calls if typ == "batchUpdate"
     )
+
+
+def test_plantilla_registra_anio_sin_anadir_columna_visible():
+    service = SheetsFake(control_exists=True)
+    writer = GoogleSheetsCreditosWriter(service, "fake-id")
+    writer.claves_existentes(fields())
+    writer.anio_credito_actual = 2027
+    writer.agregar("gmail:2027:1", "2027-02-01T12:00:00Z", [
+        "Pom Ficticio", "PO", "JN", "12", "23.50", "31409", "1"
+    ])
+    writes = [arg for typ, arg in service.calls if typ == "batchUpdate"]
+    assert len(writes) == 1
+    rows = writes[0]["body"]["requests"]
+    assert len(rows[0]["appendCells"]["rows"][0]["values"]) == 7
+    technical = rows[1]["appendCells"]["rows"][0]["values"]
+    assert len(technical) == 4
+    assert technical[2]["userEnteredValue"]["stringValue"] == "31409"
+    assert technical[3]["userEnteredValue"]["numberValue"] == 2027
+    assert writer.es_registro_historico(["Pom Ficticio", "PO", "JN", "12", "23.50", "31409", "1"])
