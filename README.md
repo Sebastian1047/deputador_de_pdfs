@@ -1,4 +1,4 @@
-# Depurador de PDF · v0.9.0
+# Depurador de PDF · v0.9.1
 
 **Aplicación web Python para navegador (Render o Windows Server)**. Para las próximas pruebas, busca mensajes en Gmail personal, permite seleccionar un correo, extrae información de sus PDF adjuntos **en memoria** y agrega filas a una **hoja nativa de Google Sheets guardada en Google Drive**. La integración con Outlook y OneDrive se conserva solo como alternativa heredada.
 
@@ -146,3 +146,14 @@ El menú horizontal contiene **Detalle del mes**, que muestra las siete columnas
 **Año del histórico:** el Excel original Creditos SOLE 2026 tiene MES pero no año. Los registros de ese archivo (incluida la importación previa de 39 PDF) se atribuyen a 2026. Las nuevas importaciones guardan el año real de Credit Date junto al QC en las columnas C/D de la pestaña oculta _CONTROL_PDF, sin añadir columnas visibles a DETALLE DEVOLUCION. Los registros agregados manualmente sin año seguirán atribuyéndose a 2026 y deben verificarse antes de utilizarlos en informes de otros períodos.
 
 Se requiere Pillow en el servidor para generar las imágenes. Solo un usuario autenticado puede acceder al informe y descargar PNG. En Render, el despliegue automático está desactivado: aplicar desde **Deploys → Manual Deploy → Deploy latest commit**. No hacen falta credenciales nuevas.
+
+
+## Corrección: duplicados falsos al borrar filas de Sheets (v0.9.1)
+
+**Error identificado:** después de procesar PDF, la pestaña oculta `_CONTROL_PDF` conservaba las claves documentales aun si se borraban sus filas de `DETALLE DEVOLUCION`. El motor devolvía estas claves como "existentes", marcando como duplicados documentos ya ausentes de la tabla visible.
+
+**Corrección:** en la plantilla SOLE el indicador definitivo de duplicado es el número `QC Inspection` **que existe actualmente en DETALLE DEVOLUCION**, teniendo en cuenta el año del crédito. Las claves antiguas en `_CONTROL_PDF` son auditoría histórica y **no bloquean la reimportación** por sí solas. También se ignoran años anotados en el control para números QC que ya no estén en la tabla. Los créditos que realmente siguen presentes continúan bloqueados y la comprobación se actualiza durante cada lote.
+
+No se borran registros ni hojas, tampoco se alteran credenciales. Se añadieron regresiones para probar 39 PDF reimportados tras borrar las filas visibles, 39 registros agregados, 0 duplicados y 0 errores, y para comprobar que un QC visible sigue contando como duplicado.
+
+**Render:** despliegue automático desactivado. Publicar con **Deploys → Manual Deploy → Deploy latest commit** y volver a autorizar Gmail si Render perdió el token durante el reinicio. Después comprobar el estado de procesamiento. No elimine manualmente la pestaña oculta: ya no impide reimportar después del borrado visible.

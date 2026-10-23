@@ -107,3 +107,10 @@ Los botones **Verificar Google Sheets**, **Probar 1 PDF** y **Procesar todos** c
 Después de desplegar la última versión, al final de la aplicación seleccione año y mes y pulse **Generar consulta**. El menú horizontal muestra **Detalle del mes** y **Suma total del mes**. En Suma total, pulse **Descargar imagen PNG** para obtener una imagen 1440 × 1020 con título, período y totales PO/CR/SP para enviar por correo.
 
 El informe consulta directamente Google Sheets y no modifica registros ni depende del filtro MES de la tabla dinámica. Los registros históricos del Excel 2026 sin año se atribuyen a 2026. Desde esta versión el año de los PDF nuevos se guarda en el control técnico oculto _CONTROL_PDF, sin cambiar las siete columnas visibles. No se necesitan más variables en Render. Actualice con **Manual Deploy → Deploy latest commit**.
+
+
+## Corrección de duplicados al eliminar filas (v0.9.1)
+
+Cuando alguien elimine créditos de `DETALLE DEVOLUCION`, sus antiguas claves documentales pueden seguir en la hoja oculta `_CONTROL_PDF`. Desde v0.9.1, estas claves ya no se utilizan para decidir si un PDF está duplicado: el número QC (y año) debe estar efectivamente presente en `DETALLE DEVOLUCION`. Las filas borradas pueden importarse otra vez sin limpiar manualmente `_CONTROL_PDF`.
+
+Para aplicar: **Deploys → Manual Deploy → Deploy latest commit** en Render, verificar acceso a Google Sheets, buscar el correo y procesar. Confirme que el resultado corresponde a las filas reales. No borre ni edite a mano el control técnico.
