@@ -44,7 +44,22 @@
 <p class="nota">Busque por remitente, asunto o texto. Para Outlook puede escribir from:correo@empresa.com o subject:reporte. Solo se muestran mensajes que contienen archivos PDF adjuntos. No se descargan los documentos durante la búsqueda.</p>
 </section>
 <section class="panel">
-<div class="titulo-seccion"><h2>2. Seleccionar correo específico</h2><span class="etiqueta">{{ correos|length }} encontrados</span></div>
+<h2>2. Comprobar conexión Google Sheets</h2>
+{% if destino_prueba %}
+<p class="nota">Verifica únicamente que la cuenta de servicio pueda leer la copia de pruebas y las siete columnas. No descarga PDF ni escribe en la hoja.</p>
+<form method="post" action="{{ url_for('verificar_destino') }}">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<button type="submit">Verificar Google Sheets (solo lectura)</button>
+</form>
+<p class="nota">
+{% if destino_verificado %}Conexión de la hoja confirmada para esta sesión (15 minutos).{% else %}Primero verifique la hoja para habilitar las opciones de procesamiento.{% endif %}
+</p>
+{% else %}
+<p class="nota">La verificación específica aplica a la plantilla Creditos SOLE en Google Sheets.</p>
+{% endif %}
+</section>
+<section class="panel">
+<div class="titulo-seccion"><h2>3. Seleccionar correo específico</h2><span class="etiqueta">{{ correos|length }} encontrados</span></div>
 {% if correos %}
 <div class="tabla-scroll"><table>
 <thead><tr><th>Elegir</th><th>Fecha</th><th>Remitente</th><th>Asunto</th><th>PDF</th></tr></thead>
@@ -53,20 +68,25 @@
 <td><form method="post" action="{{ url_for('procesar_seleccionado') }}" class="form-procesar">
 <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
 <input type="hidden" name="mensaje_id" value="{{ correo.id }}">
+{% if destino_prueba %}
+<button type="submit" name="modo" value="uno" {% if estado.estado == 'procesando' or not configurado or not destino_verificado %}disabled{% endif %}>Probar 1 PDF</button>
+<button type="submit" name="modo" value="todos" {% if estado.estado == 'procesando' or not configurado or not destino_verificado %}disabled{% endif %}>Procesar todos</button>
+{% else %}
 <button type="submit" {% if estado.estado == 'procesando' or not configurado %}disabled{% endif %}>Procesar</button>
+{% endif %}
 </form></td>
 <td>{{ correo.fecha }}</td>
 <td>{{ correo.remitente }}</td><td>{{ correo.asunto }}</td>
 <td class="cantidad">{{ correo.pdf }}</td>
 </tr>{% endfor %}</tbody>
 </table></div>
-<p class="nota">Cada botón procesa solo los PDF del correo de esa fila. Los datos ya registrados se omiten.</p>
+<p class="nota">«Probar 1 PDF» intenta agregar como máximo una fila a la copia de Google Sheets; «Procesar todos» revisa todos los adjuntos del correo seleccionado. Se omiten los números QC ya registrados. Compruebe el resultado antes de procesar todo.</p>
 {% else %}
 <p class="vacio">Primero pulse «Buscar correos» para visualizar y seleccionar un mensaje.</p>
 {% endif %}
 </section>
 <section class="panel">
-<h2>3. Estado del procesamiento</h2>
+<h2>4. Estado del procesamiento</h2>
 {% if estado.estado == 'procesando' %}
 <div class="aviso info">Procesando PDF. Esta página se actualiza cada 5 segundos. No inicie otra operación.</div>
 {% elif estado.estado == 'terminado' or estado.estado == 'parcial' %}
