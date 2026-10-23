@@ -81,3 +81,16 @@ En Render Free el token Gmail guardado en disco es efímero; puede desaparecer a
 - Blueprint: `render.yaml` en rama `main`
 - Dashboard: https://dashboard.render.com/
 - Documentación oficial: https://render.com/docs/infrastructure-as-code
+
+
+## Verificación segura previa a importación (v0.8.3)
+
+Después de guardar las variables de la hoja en Render, haga un despliegue manual del commit actualizado. En el panel autenticado:
+
+1. Use **Verificar Google Sheets (solo lectura)**. Esta acción prueba permisos de consulta y esquema, pero no guarda nada en la hoja de Drive.
+2. Busque el correo con 39 adjuntos.
+3. Use **Probar 1 PDF** en **solo un mensaje**; puede guardar una única fila nueva en el archivo de pruebas. Si el documento ya está en el histórico, registrará un duplicado y no escribirá filas.
+4. Compare la fila nueva con el PDF original y compruebe si el resumen `SUMA TOTAL` incluye el dato.
+5. Solo después de validar, considere **Procesar todos**. El envío completo podría contener PDF de formatos diferentes y el contador de errores indica cuáles no pudieron incorporarse (sin registrar sus datos privados en logs).
+
+El flujo de prueba no puede demostrar escritura en Google Sheets sin ejecutar la importación de un documento; la validación previa es estrictamente de lectura.

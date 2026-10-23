@@ -1,4 +1,4 @@
-# Depurador de PDF · v0.8.2
+# Depurador de PDF · v0.8.3
 
 **Aplicación web Python para navegador (Render o Windows Server)**. Para las próximas pruebas, busca mensajes en Gmail personal, permite seleccionar un correo, extrae información de sus PDF adjuntos **en memoria** y agrega filas a una **hoja nativa de Google Sheets guardada en Google Drive**. La integración con Outlook y OneDrive se conserva solo como alternativa heredada.
 
@@ -111,3 +111,13 @@ Los campos esperados, en este orden, son `VARIEDAD`, `CAT`, `FINCA`, `RM`, `TOTA
 Se corrigió la política CSP del panel Flask para permitir que el botón **Autorizar Gmail con Google** navegue desde el formulario POST (respuesta 303) a **https://accounts.google.com**, sin habilitar otras salidas arbitrarias ni scripts remotos. Se preserva también el **verificador PKCE** en la sesión HTTPS entre el inicio y la devolución de Google, para poder intercambiar el código de autorización correctamente. Se añadieron pruebas automáticas de seguridad del redireccionamiento y del desafío PKCE.
 
 El despliegue de Render utiliza `autoDeployTrigger: off`, por lo que hay que ejecutar **Manual Deploy → Deploy latest commit** en Render para aplicar esta corrección después de actualizar GitHub. No es necesario volver a crear el cliente OAuth ni compartir secretos. La conexión real sigue pendiente de la prueba de usuario.
+
+## Prueba controlada Google Sheets (v0.8.3)
+
+La conexión del archivo de pruebas en Drive todavía requiere verificación de permisos. En el panel web se añadió **Verificar Google Sheets (solo lectura)**, que usa la cuenta de servicio para consultar la existencia de la pestaña `DETALLE DEVOLUCION` y comprobar los siete encabezados exactos, sin escribir ni modificar filas. La verificación es válida durante 15 minutos en la sesión y se pierde si Render reinicia el proceso.
+
+Una vez verificada la hoja, se habilitan dos acciones por correo: **Probar 1 PDF** (procesa como máximo un PDF adjunto, y en caso de ser nuevo puede agregar una fila a la copia de pruebas) y **Procesar todos** (intenta procesar los adjuntos del mensaje, normalmente 39 en este envío). La prueba de lectura **no garantiza** que Google permita escribir; esa capacidad se confirma únicamente al ejecutar una importación controlada.
+
+Primero presione **Verificar Google Sheets** y confirme el mensaje verde de conexión. Luego pulse **Probar 1 PDF** en un solo correo y verifique la fila y el resumen `SUMA TOTAL` de la copia. No use **Procesar todos** antes de revisar el resultado. Se conservan la comprobación de créditos históricos y el control de documentos ya importados.
+
+**Render:** el despliegue automático desde GitHub está deshabilitado en `render.yaml`. Tras estos cambios es necesario abrir Render → Depurador → Deploys → **Manual Deploy → Deploy latest commit**. No modificar secretos al actualizar el código. No se ha realizado ninguna escritura en el Drive del usuario desde este repositorio.
