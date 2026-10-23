@@ -57,6 +57,8 @@ class GoogleSheetsCreditosWriter:
         self.sheet_id = None
         self.control_id = None
         self.creditos_existentes: set[str] = set()
+        self.creditos_por_anio: set[tuple[str, int]] = set()
+        self.anio_credito_actual: int = 2026
 
     def claves_existentes(self, campos: Sequence[Campo]) -> set[str]:
         if [campo.nombre.strip().casefold() for campo in campos] != [
@@ -105,12 +107,26 @@ class GoogleSheetsCreditosWriter:
         claves = self.values.get(
             spreadsheetId=self.spreadsheet_id, range=_a1(CONTROL, "A2:A")
         ).execute().get("values", [])
+        # El Excel histórico no tenía año: sus filas corresponden a 2026.
+        # En los próximos PDF se conserva el año real de Credit Date dentro
+        # de la pestaña de control, sin añadir columnas visibles a la hoja.
+        self.creditos_por_anio = {(qc, 2026) for qc in self.creditos_existentes}
+        anotaciones = self.values.get(
+            spreadsheetId=self.spreadsheet_id, range=_a1(CONTROL, "C2:D")
+        ).execute().get("values", [])
+        for fila in anotaciones:
+            if len(fila) >= 2 and str(fila[0]).strip() and str(fila[1]).strip():
+                try:
+                    anio = int(fila[1])
+                except (ValueError, TypeError):
+                    continue
+                self.creditos_por_anio.add((str(fila[0]).strip(), anio))
         return {str(row[0]) for row in claves if row}
 
     def es_registro_historico(self, datos: Sequence[str]) -> bool:
         if len(datos) != len(COLUMNAS):
             raise ValueError("No coinciden las 7 columnas de la plantilla")
-        return str(datos[5]).strip() in self.creditos_existentes
+        return (str(datos[5]).strip(), self.anio_credito_actual) in self.creditos_por_anio
 
     def agregar(self, clave: str, fecha_utc: str, datos: Sequence[str]) -> None:
         if self.sheet_id is None or self.control_id is None:
@@ -138,6 +154,8 @@ class GoogleSheetsCreditosWriter:
                 "rows": [{"values": [
                     {"userEnteredValue": {"stringValue": str(clave)}},
                     {"userEnteredValue": {"stringValue": str(fecha_utc)}},
+                    {"userEnteredValue": {"stringValue": str(datos[5]).strip()}},
+                    {"userEnteredValue": {"numberValue": self.anio_credito_actual}},
                 ]}],
                 "fields": "userEnteredValue",
             }},
@@ -146,3 +164,4 @@ class GoogleSheetsCreditosWriter:
             spreadsheetId=self.spreadsheet_id, body={"requests": requests}
         ).execute()
         self.creditos_existentes.add(str(datos[5]).strip())
+        self.creditos_por_anio.add((str(datos[5]).strip(), self.anio_credito_actual))
