@@ -104,9 +104,10 @@ class GoogleSheetsCreditosWriter:
                 valueInputOption="RAW",
                 body={"values": [["document_key", "processed_utc"]]},
             ).execute()
-        claves = self.values.get(
-            spreadsheetId=self.spreadsheet_id, range=_a1(CONTROL, "A2:A")
-        ).execute().get("values", [])
+        # La pestaña _CONTROL_PDF contiene auditoría, no la fuente de
+        # duplicados. Si el usuario borra una fila de DETALLE DEVOLUCION,
+        # la clave del PDF puede permanecer en _CONTROL_PDF. Bloquearla aquí
+        # impediría reimportar el crédito legítimamente.
         # El Excel histórico no tenía año: sus filas corresponden a 2026.
         # En los próximos PDF se conserva el año real de Credit Date dentro
         # de la pestaña de control, sin añadir columnas visibles a la hoja.
@@ -120,8 +121,15 @@ class GoogleSheetsCreditosWriter:
                     anio = int(fila[1])
                 except (ValueError, TypeError):
                     continue
-                self.creditos_por_anio.add((str(fila[0]).strip(), anio))
-        return {str(row[0]) for row in claves if row}
+                qc = str(fila[0]).strip()
+                # Las referencias técnicas obsoletas no pueden volver a
+                # considerar duplicado un QC que ya no existe en el detalle.
+                if qc in self.creditos_existentes:
+                    self.creditos_por_anio.add((qc, anio))
+        # Forzar extracción y cotejo con los números QC que realmente están
+        # en la hoja visible. El escritor actualiza creditos_por_anio tras
+        # agregar cada fila, evitando duplicados dentro del mismo lote.
+        return set()
 
     def es_registro_historico(self, datos: Sequence[str]) -> bool:
         if len(datos) != len(COLUMNAS):
