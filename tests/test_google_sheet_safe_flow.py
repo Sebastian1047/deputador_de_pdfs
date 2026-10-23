@@ -5,6 +5,7 @@ import re
 
 from depurador.google_sheet_checks import comprobar_hoja_creditos
 from depurador import web
+from test_web import entorno, iniciar_sesion
 
 
 class Request:
@@ -55,7 +56,6 @@ def test_read_only_check_fails_wrong_columns():
 
 def test_safe_web_flow_uses_explicit_verification_and_single_pdf(entorno, monkeypatch):
     app, client, _ = entorno
-    from test_web import iniciar_sesion
     app.config["GOOGLE_SHEETS_TEMPLATE"] = "creditos_sole"
     app.config["GOOGLE_SHEET_TAB"] = "DETALLE DEVOLUCION"
     called = []
