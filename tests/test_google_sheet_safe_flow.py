@@ -100,7 +100,7 @@ def test_safe_web_flow_uses_explicit_verification_and_single_pdf(entorno, monkey
     }), encoding="utf-8")
 
     token = iniciar_sesion(client)
-    client.post("/buscar", data={"_csrf": token, "filtro": "filename:pdf"})
+    client.post("/buscar", data={"_csrf": token, "anio": "2026", "mes": "9"})
     assert "Probar 1 PDF" in client.get("/").text
     assert client.post("/procesar", data={
         "_csrf": token, "mensaje_id": "mensaje1", "modo": "uno"
