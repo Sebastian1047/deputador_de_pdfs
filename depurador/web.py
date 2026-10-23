@@ -10,7 +10,7 @@ import os
 import secrets
 import threading
 import time
-from datetime import timedelta
+from datetime import date, timedelta
 from functools import wraps
 from pathlib import Path
 
@@ -26,6 +26,7 @@ from .oauth_web import iniciar_oauth, completar_oauth
 from .google_drive_sheet import COLUMNAS as COLUMNAS_SOLE, GoogleSheetsCreditosWriter
 from .google_sheet_checks import comprobar_hoja_creditos
 from .sole_pdf import extraer_credito_sole
+from .filtros_creditos import MESES, anos_disponibles, consulta_creditos, periodo_predeterminado
 
 LOG = logging.getLogger(__name__)
 CONSULTA = "has:attachment filename:pdf newer_than:30d"
@@ -234,6 +235,8 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
     def inicio():
         sid = session["sid"]
         seleccion = seleccion_actual(sid)
+        pred_anio, pred_mes = periodo_predeterminado()
+        elegido = session.get("periodo_creditos") or {}
         with mutex:
             estado = dict(estados.get(sid, {"estado": "pendiente"}))
         return render_template(
@@ -243,6 +246,12 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
                 app.config["OUTLOOK_QUERY"] if app.config["MAIL_PROVIDER"] == "outlook"
                 else app.config["GMAIL_QUERY"]
             ),
+            filtro_mensual=(app.config["MAIL_PROVIDER"] == "gmail"
+                            and app.config["GOOGLE_SHEETS_TEMPLATE"] == "creditos_sole"),
+            anos=anos_disponibles(),
+            meses=tuple(enumerate(MESES, start=1)),
+            anio_seleccionado=elegido.get("anio", pred_anio),
+            mes_seleccionado=elegido.get("mes", pred_mes),
             proveedor="Outlook empresarial" if app.config["MAIL_PROVIDER"] == "outlook" else "Gmail",
             estado=estado,
             configurado=(bool((app.config["MS_ONEDRIVE_OWNER"] and app.config["MS_ONEDRIVE_PATH"]) or (app.config["MS_EXCEL_DRIVE_ID"] and app.config["MS_EXCEL_ITEM_ID"]))
@@ -327,10 +336,21 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
     @app.post("/buscar")
     @requiere_login
     def buscar():
-        filtro = (request.form.get("filtro") or "").strip()
-        if not filtro or len(filtro) > 500:
-            flash("Introduzca un filtro válido (máximo 500 caracteres).", "error")
-            return redirect(url_for("inicio"))
+        if (app.config["MAIL_PROVIDER"] == "gmail"
+                and app.config["GOOGLE_SHEETS_TEMPLATE"] == "creditos_sole"):
+            try:
+                anio = int(request.form.get("anio", ""))
+                mes = int(request.form.get("mes", ""))
+                filtro = consulta_creditos(anio, mes)
+            except (ValueError, TypeError, OverflowError):
+                flash("Seleccione un año y mes válidos para buscar créditos.", "error")
+                return redirect(url_for("inicio"))
+            session["periodo_creditos"] = {"anio": anio, "mes": mes}
+        else:
+            filtro = (request.form.get("filtro") or "").strip()
+            if not filtro or len(filtro) > 500:
+                flash("Introduzca un filtro válido (máximo 500 caracteres).", "error")
+                return redirect(url_for("inicio"))
         sid = session["sid"]
         with mutex:
             cache.pop(sid, None)
