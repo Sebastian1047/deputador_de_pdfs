@@ -129,6 +129,80 @@
 {% endif %}
 {% if not configurado %}<p class="nota">Pendiente: configurar {{ destino_nombre }} en el servidor.</p>{% endif %}
 </section>
+{% if reporte_disponible %}
+<section class="panel" id="consulta">
+<div class="titulo-seccion"><h2>5. Consultar créditos por período</h2><span class="etiqueta">Google Sheets</span></div>
+<p class="nota">Seleccione el año y el mes que necesita. Los datos se consultan directamente de la hoja, sin procesar otra vez los PDF ni modificar registros.</p>
+<form class="busqueda-periodo" method="get" action="{{ url_for('inicio') }}#consulta">
+<div class="campo-periodo">
+<label for="reporte-anio">Año</label>
+<select id="reporte-anio" name="anio" required>
+{% for anio in anos %}<option value="{{ anio }}" {% if anio == reporte_anio %}selected{% endif %}>{{ anio }}</option>{% endfor %}
+</select>
+</div>
+<div class="campo-periodo">
+<label for="reporte-mes">Mes</label>
+<select id="reporte-mes" name="mes" required>
+{% for numero, nombre in meses %}<option value="{{ numero }}" {% if numero == reporte_mes %}selected{% endif %}>{{ nombre|capitalize }}</option>{% endfor %}
+</select>
+</div>
+<button type="submit">Generar consulta</button>
+</form>
+{% if reporte_error %}<div class="aviso error">{{ reporte_error }}</div>{% endif %}
+{% if reporte %}
+<div class="reporte-periodo">
+<div><span class="reporte-etiqueta">PERÍODO CONSULTADO</span>
+<h3>{{ reporte.nombre_mes }} {{ reporte.anio }}</h3></div>
+<span class="etiqueta">{{ reporte.cantidad }} registros</span>
+</div>
+<nav class="reporte-tabs" aria-label="Vistas del informe mensual">
+<a class="{{ 'activo' if reporte_vista == 'detalle' else '' }}"
+   href="{{ url_for('inicio', anio=reporte.anio, mes=reporte.mes, vista='detalle') }}#consulta"
+   {% if reporte_vista == 'detalle' %}aria-current="page"{% endif %}>Detalle del mes</a>
+<a class="{{ 'activo' if reporte_vista == 'resumen' else '' }}"
+   href="{{ url_for('inicio', anio=reporte.anio, mes=reporte.mes, vista='resumen') }}#consulta"
+   {% if reporte_vista == 'resumen' %}aria-current="page"{% endif %}>Suma total del mes</a>
+</nav>
+{% if reporte_vista == 'detalle' %}
+<div class="tabla-scroll reporte-tabla">
+<table>
+<thead><tr>
+<th>VARIEDAD</th><th>CAT</th><th>FINCA</th><th class="numero">RM</th>
+<th class="numero">TOTAL</th><th class="numero">QC Inspection</th><th class="numero">MES</th>
+</tr></thead>
+<tbody>
+{% for fila in reporte.registros %}
+<tr><td>{{ fila.variedad }}</td><td>{{ fila.cat }}</td><td>{{ fila.finca }}</td>
+<td class="numero">{{ fila.rm }}</td><td class="numero">{{ fila.total|numero_es }}</td>
+<td class="numero">{{ fila.qc }}</td><td class="numero">{{ fila.mes }}</td></tr>
+{% else %}
+<tr><td colspan="7" class="reporte-sin-registros">No hay créditos registrados en este mes y año.</td></tr>
+{% endfor %}
+</tbody></table>
+</div>
+{% else %}
+<div class="reporte-resumen">
+<div class="reporte-resumen-cabecera">
+<div><span>RESUMEN CRÉDITOS SOLE</span><h3>{{ reporte.nombre_mes }} {{ reporte.anio }}</h3></div>
+<span class="etiqueta">{{ reporte.cantidad }} créditos</span>
+</div>
+<div class="reporte-resumen-filas">
+{% for fila in reporte.resumen %}
+<div class="reporte-resumen-fila">
+<span>{{ fila.cat }}</span><strong>{{ fila.total|numero_es }}</strong>
+</div>
+{% endfor %}
+</div>
+<div class="reporte-total"><span>Suma total</span><strong>{{ reporte.total|numero_es }}</strong></div>
+</div>
+<a class="boton-descargar"
+   href="{{ url_for('descargar_resumen_png', anio=reporte.anio, mes=reporte.mes) }}">Descargar imagen PNG</a>
+<p class="nota">Imagen de alta resolución con el mes, el año y los totales, lista para adjuntar al correo del gerente.</p>
+{% endif %}
+<p class="nota">El Excel original es de 2026 y no contiene columna de año. Los registros históricos sin año se asignan a 2026; los próximos PDF procesados por esta versión conservarán el año de su fecha de crédito.</p>
+{% endif %}
+</section>
+{% endif %}
 <footer>Servidor local · Uso interno · No subir archivos PDF ni contraseñas al repositorio público.</footer>
 </main>
 </body>
