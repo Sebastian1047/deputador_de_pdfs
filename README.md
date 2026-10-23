@@ -1,4 +1,4 @@
-# Depurador de PDF · v0.8.3
+# Depurador de PDF · v0.8.4
 
 **Aplicación web Python para navegador (Render o Windows Server)**. Para las próximas pruebas, busca mensajes en Gmail personal, permite seleccionar un correo, extrae información de sus PDF adjuntos **en memoria** y agrega filas a una **hoja nativa de Google Sheets guardada en Google Drive**. La integración con Outlook y OneDrive se conserva solo como alternativa heredada.
 
@@ -121,3 +121,17 @@ Una vez verificada la hoja, se habilitan dos acciones por correo: **Probar 1 PDF
 Primero presione **Verificar Google Sheets** y confirme el mensaje verde de conexión. Luego pulse **Probar 1 PDF** en un solo correo y verifique la fila y el resumen `SUMA TOTAL` de la copia. No use **Procesar todos** antes de revisar el resultado. Se conservan la comprobación de créditos históricos y el control de documentos ya importados.
 
 **Render:** el despliegue automático desde GitHub está deshabilitado en `render.yaml`. Tras estos cambios es necesario abrir Render → Depurador → Deploys → **Manual Deploy → Deploy latest commit**. No modificar secretos al actualizar el código. No se ha realizado ninguna escritura en el Drive del usuario desde este repositorio.
+
+## Buscar correos por año y mes, sin escribir filtros (v0.8.4)
+
+En la aplicación Gmail + plantilla Créditos SOLE, el filtro técnico fue reemplazado por dos desplegables: **Año del crédito** y **Mes del crédito**, con un botón **Buscar correos**. El año/mes por defecto son los del mes anterior, pues habitualmente los créditos del mes se reciben en el siguiente. La selección se conserva durante la sesión.
+
+La búsqueda se genera **en el servidor, con valores validados**, no es un texto libre enviado por el navegador. Por ejemplo, al seleccionar **Septiembre 2026** se consulta:
+
+```
+subject:"CREDITOS SEPTIEMBRE JN" has:attachment filename:pdf after:2026/09/01 before:2026/11/01
+```
+
+Esta consulta busca el asunto esperado y archivos PDF dentro del mes elegido **y el siguiente mes de recepción**, para contemplar reenvíos tardíos como el del 22 de octubre de 2026. Excluye correos de **septiembre de 2025** y otros años; el año elegido corresponde al **período del crédito**, no obliga a que el mensaje se haya recibido ese mismo mes. **Diciembre** se extiende a **enero** del año siguiente. Se ofrecen el año actual y cinco anteriores para consultas históricas explícitas.
+
+Los módulos Outlook o Gmail con otro formato mantienen la búsqueda técnica previa; no se modificó el extractor PDF, la deduplicación, los 39 adjuntos ni el conector Google Sheets. La actualización debe desplegarse manualmente desde Render → Deploys → **Manual Deploy → Deploy latest commit**: la configuración tiene despliegue automático deshabilitado.

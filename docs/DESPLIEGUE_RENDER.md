@@ -94,3 +94,9 @@ Después de guardar las variables de la hoja en Render, haga un despliegue manua
 5. Solo después de validar, considere **Procesar todos**. El envío completo podría contener PDF de formatos diferentes y el contador de errores indica cuáles no pudieron incorporarse (sin registrar sus datos privados en logs).
 
 El flujo de prueba no puede demostrar escritura en Google Sheets sin ejecutar la importación de un documento; la validación previa es estrictamente de lectura.
+
+## Seleccionar año y mes en la aplicación (v0.8.4)
+
+En **1. Buscar correos con PDF** seleccione el **año** y el **mes** del crédito (por defecto el mes anterior). Pulse **Buscar correos**. La aplicación genera internamente `subject:"CREDITOS SEPTIEMBRE JN"` o el mes elegido, además de `has:attachment filename:pdf` y un intervalo desde el primer día del mes hasta el primer día de dos meses después. Esto contempla informes enviados en el mes siguiente sin mostrar el año equivalente anterior. Ejemplo: **Septiembre de 2026** consulta mensajes recibidos en septiembre/octubre de 2026; **Diciembre de 2026** incluye enero de 2027.
+
+Los botones **Verificar Google Sheets**, **Probar 1 PDF** y **Procesar todos** conservan su comportamiento actual; no cambie las variables de entorno ni el JSON OAuth al desplegar esta actualización.
