@@ -66,7 +66,7 @@ def fields():
 def test_plantilla_verifica_encabezados_y_conserva_historico():
     service = SheetsFake()
     writer = GoogleSheetsCreditosWriter(service, "fake-spreadsheet-id")
-    assert writer.claves_existentes(fields()) == {"gmail:id-antiguo:1"}
+    assert writer.claves_existentes(fields()) == set()
     assert writer.sheet_id == 111 and writer.control_id == 222
     creates = [call for typ, call in service.calls if typ == "batchUpdate"]
     assert len(creates) == 1
@@ -153,3 +153,77 @@ def test_plantilla_registra_anio_sin_anadir_columna_visible():
     assert technical[2]["userEnteredValue"]["stringValue"] == "31409"
     assert technical[3]["userEnteredValue"]["numberValue"] == 2027
     assert writer.es_registro_historico(["Pom Ficticio", "PO", "JN", "12", "23.50", "31409", "1"])
+
+
+
+def test_borrado_visible_ignora_claves_obsoletas_de_control():
+    """El PDF puede reimportarse si el usuario borró el QC de DETALLE DEVOLUCION."""
+    class HojaVaciada(SheetsFake):
+        def get(self, **kwargs):
+            if kwargs.get("range") == "'DETALLE DEVOLUCION'!F2:F":
+                self.calls.append(("get", kwargs))
+                return Peticion({"values": []})
+            if kwargs.get("range") == "'_CONTROL_PDF'!C2:D":
+                self.calls.append(("get", kwargs))
+                return Peticion({"values": [["31409", 2026]]})
+            return super().get(**kwargs)
+
+    from depurador.core import AdjuntoPDF, procesar
+    service = HojaVaciada(control_exists=True)
+    destino = GoogleSheetsCreditosWriter(service, "fake-id")
+
+    # Generar 39 contenidos con números QC distintos, pero todas las claves
+    # documentales figuran en el control histórico y ya no en la hoja visible.
+    class LoteReal:
+        def adjuntos_pdf(self):
+            for index in range(39):
+                yield AdjuntoPDF(f"gmail:correo:archivo-{index}", f"%PDF-{index}".encode())
+
+    def extraer(documento, campos):
+        indice = int(documento.split(b"-")[-1])
+        return ["Pom Ficticio", "PO", "JN", "2", "3,20", str(31409 + indice), "9"]
+
+    resultado = procesar(LoteReal(), destino, fields(), extractor=extraer)
+    assert resultado == {"encontrados": 39, "agregados": 39, "duplicados": 0, "errores": 0}
+    assert len([c for t, c in service.calls if t == "batchUpdate"]) == 39
+
+
+def test_claves_viejas_no_impiden_bloquear_duplicados_que_siguen_en_detalle():
+    from depurador.core import AdjuntoPDF, procesar
+
+    service = SheetsFake(control_exists=True)
+    destino = GoogleSheetsCreditosWriter(service, "fake-id")
+
+    class Correo:
+        def adjuntos_pdf(self):
+            yield AdjuntoPDF("gmail:id-antiguo:1", b"fake")
+
+    resultado = procesar(
+        Correo(), destino, fields(),
+        extractor=lambda contenido, campos: [
+            "Pom Ficticio", "PO", "JN", "12", "16.85", "31409", "1"
+        ],
+    )
+    assert resultado == {"encontrados": 1, "agregados": 0, "duplicados": 1, "errores": 0}
+    assert not any(
+        call["body"]["requests"][0].get("appendCells")
+        for typ, call in service.calls if typ == "batchUpdate"
+    )
+
+
+def test_control_obsoleto_2027_no_ensucia_periodo_sin_qc_visible():
+    class HojaVaciada(SheetsFake):
+        def get(self, **kwargs):
+            if kwargs.get("range") == "'DETALLE DEVOLUCION'!F2:F":
+                self.calls.append(("get", kwargs))
+                return Peticion({"values": []})
+            if kwargs.get("range") == "'_CONTROL_PDF'!C2:D":
+                self.calls.append(("get", kwargs))
+                return Peticion({"values": [["31409", 2027]]})
+            return super().get(**kwargs)
+
+    writer = GoogleSheetsCreditosWriter(HojaVaciada(control_exists=True), "fake-id")
+    assert writer.claves_existentes(fields()) == set()
+    assert not writer.es_registro_historico([
+        "Pom Ficticio", "PO", "JN", "12", "16.85", "31409", "1"
+    ])
