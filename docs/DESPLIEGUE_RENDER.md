@@ -100,3 +100,10 @@ El flujo de prueba no puede demostrar escritura en Google Sheets sin ejecutar la
 En **1. Buscar correos con PDF** seleccione el **año** y el **mes** del crédito (por defecto el mes anterior). Pulse **Buscar correos**. La aplicación genera internamente `subject:"CREDITOS SEPTIEMBRE JN"` o el mes elegido, además de `has:attachment filename:pdf` y un intervalo desde el primer día del mes hasta el primer día de dos meses después. Esto contempla informes enviados en el mes siguiente sin mostrar el año equivalente anterior. Ejemplo: **Septiembre de 2026** consulta mensajes recibidos en septiembre/octubre de 2026; **Diciembre de 2026** incluye enero de 2027.
 
 Los botones **Verificar Google Sheets**, **Probar 1 PDF** y **Procesar todos** conservan su comportamiento actual; no cambie las variables de entorno ni el JSON OAuth al desplegar esta actualización.
+
+
+## Informes por año/mes con PNG para gerencia (v0.9.0)
+
+Después de desplegar la última versión, al final de la aplicación seleccione año y mes y pulse **Generar consulta**. El menú horizontal muestra **Detalle del mes** y **Suma total del mes**. En Suma total, pulse **Descargar imagen PNG** para obtener una imagen 1440 × 1020 con título, período y totales PO/CR/SP para enviar por correo.
+
+El informe consulta directamente Google Sheets y no modifica registros ni depende del filtro MES de la tabla dinámica. Los registros históricos del Excel 2026 sin año se atribuyen a 2026. Desde esta versión el año de los PDF nuevos se guarda en el control técnico oculto _CONTROL_PDF, sin cambiar las siete columnas visibles. No se necesitan más variables en Render. Actualice con **Manual Deploy → Deploy latest commit**.

@@ -1,4 +1,4 @@
-# Depurador de PDF · v0.8.4
+# Depurador de PDF · v0.9.0
 
 **Aplicación web Python para navegador (Render o Windows Server)**. Para las próximas pruebas, busca mensajes en Gmail personal, permite seleccionar un correo, extrae información de sus PDF adjuntos **en memoria** y agrega filas a una **hoja nativa de Google Sheets guardada en Google Drive**. La integración con Outlook y OneDrive se conserva solo como alternativa heredada.
 
@@ -135,3 +135,14 @@ subject:"CREDITOS SEPTIEMBRE JN" has:attachment filename:pdf after:2026/09/01 be
 Esta consulta busca el asunto esperado y archivos PDF dentro del mes elegido **y el siguiente mes de recepción**, para contemplar reenvíos tardíos como el del 22 de octubre de 2026. Excluye correos de **septiembre de 2025** y otros años; el año elegido corresponde al **período del crédito**, no obliga a que el mensaje se haya recibido ese mismo mes. **Diciembre** se extiende a **enero** del año siguiente. Se ofrecen el año actual y cinco anteriores para consultas históricas explícitas.
 
 Los módulos Outlook o Gmail con otro formato mantienen la búsqueda técnica previa; no se modificó el extractor PDF, la deduplicación, los 39 adjuntos ni el conector Google Sheets. La actualización debe desplegarse manualmente desde Render → Deploys → **Manual Deploy → Deploy latest commit**: la configuración tiene despliegue automático deshabilitado.
+
+
+## Informes mensuales para gerencia (v0.9.0)
+
+Al final de la web se incorporó **5. Consultar créditos por período**, con filtros de **año y mes** y botón **Generar consulta**. Los datos se consultan en modo solo lectura desde la pestaña DETALLE DEVOLUCION de Google Sheets, sin volver a importar PDF.
+
+El menú horizontal contiene **Detalle del mes**, que muestra las siete columnas de créditos con los registros filtrados, y **Suma total del mes**, que calcula PO, CR y SP más el total general. Esta última vista permite **Descargar imagen PNG** de alta resolución con diseño corporativo, título Resumen Créditos SOLE y mes/año, para compartir por correo con gerencia. El resumen se calcula sobre los registros y no depende del filtro activo de la tabla dinámica SUMA TOTAL.
+
+**Año del histórico:** el Excel original Creditos SOLE 2026 tiene MES pero no año. Los registros de ese archivo (incluida la importación previa de 39 PDF) se atribuyen a 2026. Las nuevas importaciones guardan el año real de Credit Date junto al QC en las columnas C/D de la pestaña oculta _CONTROL_PDF, sin añadir columnas visibles a DETALLE DEVOLUCION. Los registros agregados manualmente sin año seguirán atribuyéndose a 2026 y deben verificarse antes de utilizarlos en informes de otros períodos.
+
+Se requiere Pillow en el servidor para generar las imágenes. Solo un usuario autenticado puede acceder al informe y descargar PNG. En Render, el despliegue automático está desactivado: aplicar desde **Deploys → Manual Deploy → Deploy latest commit**. No hacen falta credenciales nuevas.

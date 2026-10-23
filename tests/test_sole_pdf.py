@@ -91,3 +91,12 @@ def test_procesar_evitar_duplicados_historicos_por_credito():
             raise AssertionError("No debe escribirse un crédito histórico")
     result = procesar(Mail(), Destination(), campos(), extractor=extraer_credito_sole)
     assert result == {"encontrados": 1, "agregados": 0, "duplicados": 1, "errores": 0}
+
+
+def test_extrae_anio_del_credit_date_sin_cambiar_siete_columnas():
+    datos, anio = extraer_credito_sole(
+        pdf_sintetico(fecha="01/17/2027"), campos(), incluir_anio=True
+    )
+    assert anio == 2027
+    assert len(datos) == 7
+    assert datos[6] == "1"

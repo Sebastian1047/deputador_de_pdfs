@@ -99,7 +99,6 @@ def test_informe_web_solo_autenticado_y_con_tabs_y_descarga(entorno, monkeypatch
     app.config["GOOGLE_SHEETS_TEMPLATE"] = "creditos_sole"
     app.config["GOOGLE_SHEET_TAB"] = "DETALLE DEVOLUCION"
     assert client.get("/informes/resumen.png?anio=2026&mes=9").status_code == 302
-    monkeypatch.setattr(web, "servicio_destino", None, raising=False) if False else None
     # create_app tiene una fábrica de servicios; su segunda instancia falsa
     # se sustituye directamente con FakeSheets para estas pruebas.
     fake = FakeSheets()
