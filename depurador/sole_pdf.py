@@ -34,8 +34,9 @@ def _categoria(producto: str) -> str:
     raise ValueError("No se reconoce la categoría del producto")
 
 
-def extraer_credito_sole(contenido: bytes, campos=None) -> list[str]:
-    """Extraer 7 columnas en el orden de la plantilla histórica de créditos."""
+def extraer_credito_sole(contenido: bytes, campos=None, *,
+                        incluir_anio: bool = False):
+    """Extraer las siete columnas y opcionalmente el año de Credit Date."""
     if not contenido.startswith(b"%PDF"):
         raise ValueError("Adjunto no es un PDF válido")
     if campos is not None and [c.nombre.strip().casefold() for c in campos] != [
@@ -88,8 +89,9 @@ def extraer_credito_sole(contenido: bytes, campos=None) -> list[str]:
         r"^\s*Credit Date\s*:?\s*(\d{1,2}/\d{1,2}/\d{4})\b",
         "Credit Date",
     ).group(1)
-    mes = datetime.strptime(fecha, "%m/%d/%Y").month
-    return [
+    fecha_credito = datetime.strptime(fecha, "%m/%d/%Y")
+    datos = [
         producto, _categoria(producto), finca, str(int(cantidad)),
-        str(importe), str(int(credito)), str(mes),
+        str(importe), str(int(credito)), str(fecha_credito.month),
     ]
+    return (datos, fecha_credito.year) if incluir_anio else datos
