@@ -1,4 +1,4 @@
-# Depurador de PDF · v0.9.1
+# Depurador de PDF · v0.9.2
 
 **Aplicación web Python para navegador (Render o Windows Server)**. Para las próximas pruebas, busca mensajes en Gmail personal, permite seleccionar un correo, extrae información de sus PDF adjuntos **en memoria** y agrega filas a una **hoja nativa de Google Sheets guardada en Google Drive**. La integración con Outlook y OneDrive se conserva solo como alternativa heredada.
 
@@ -157,3 +157,10 @@ Se requiere Pillow en el servidor para generar las imágenes. Solo un usuario au
 No se borran registros ni hojas, tampoco se alteran credenciales. Se añadieron regresiones para probar 39 PDF reimportados tras borrar las filas visibles, 39 registros agregados, 0 duplicados y 0 errores, y para comprobar que un QC visible sigue contando como duplicado.
 
 **Render:** despliegue automático desactivado. Publicar con **Deploys → Manual Deploy → Deploy latest commit** y volver a autorizar Gmail si Render perdió el token durante el reinicio. Después comprobar el estado de procesamiento. No elimine manualmente la pestaña oculta: ya no impide reimportar después del borrado visible.
+
+
+## Procesamiento simplificado sin botón de prueba (v0.9.2)
+
+La aplicación ya fue verificada con los 39 PDF reales. Se retiró de **3. Seleccionar correo específico** el botón **Probar 1 PDF** y su modo interno limitado. Para cada correo se muestra únicamente **Procesar todos**. Se mantiene **Verificar Google Sheets (solo lectura)** antes del procesamiento y la protección de duplicados que consulta el número QC realmente existente en DETALLE DEVOLUCION. Peticiones antiguas con `modo=uno` se rechazan y no procesan documentos.
+
+Los módulos de consulta por período y el resumen PNG no cambian. En Render: **Deploys → Manual Deploy → Deploy latest commit**. No cambiar variables ni credenciales.

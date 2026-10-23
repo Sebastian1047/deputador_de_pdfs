@@ -114,3 +114,8 @@ El informe consulta directamente Google Sheets y no modifica registros ni depend
 Cuando alguien elimine créditos de `DETALLE DEVOLUCION`, sus antiguas claves documentales pueden seguir en la hoja oculta `_CONTROL_PDF`. Desde v0.9.1, estas claves ya no se utilizan para decidir si un PDF está duplicado: el número QC (y año) debe estar efectivamente presente en `DETALLE DEVOLUCION`. Las filas borradas pueden importarse otra vez sin limpiar manualmente `_CONTROL_PDF`.
 
 Para aplicar: **Deploys → Manual Deploy → Deploy latest commit** en Render, verificar acceso a Google Sheets, buscar el correo y procesar. Confirme que el resultado corresponde a las filas reales. No borre ni edite a mano el control técnico.
+
+
+## Botón único para procesar correo (v0.9.2)
+
+Después de confirmar el funcionamiento con documentos reales se retiró el botón de prueba de un solo PDF. El panel ofrece **Procesar todos** en cada correo de la tabla, sin opción de procesar únicamente uno. Continúa siendo obligatorio **Verificar Google Sheets (solo lectura)** antes de procesar y continúa el control de números QC duplicados. Aplique la versión con **Manual Deploy → Deploy latest commit** en Render. No es necesario cambiar secretos.

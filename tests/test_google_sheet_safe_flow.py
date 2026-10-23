@@ -1,4 +1,4 @@
-"""La verificación de la hoja nunca escribe y la prueba procesa solo un PDF."""
+"""La verificación no escribe y el procesamiento importa todo el correo elegido."""
 from types import SimpleNamespace
 from threading import Event
 import re
@@ -54,7 +54,7 @@ def test_read_only_check_fails_wrong_columns():
         comprobar_hoja_creditos(service, "TEST-SHEET-ID")
 
 
-def test_safe_web_flow_uses_explicit_verification_and_single_pdf(entorno, monkeypatch):
+def test_safe_web_flow_verifies_sheet_before_processing_all_pdfs(entorno, monkeypatch):
     app, client, _ = entorno
     app.config["GOOGLE_SHEETS_TEMPLATE"] = "creditos_sole"
     app.config["GOOGLE_SHEET_TAB"] = "DETALLE DEVOLUCION"
@@ -101,9 +101,15 @@ def test_safe_web_flow_uses_explicit_verification_and_single_pdf(entorno, monkey
 
     token = iniciar_sesion(client)
     client.post("/buscar", data={"_csrf": token, "anio": "2026", "mes": "9"})
-    assert "Probar 1 PDF" in client.get("/").text
+    pantalla = client.get("/").text
+    assert "Probar 1 PDF" not in pantalla
+    assert pantalla.count("Procesar todos") >= 1
+    # No permitir el modo obsoleto, ni siquiera manipulando el formulario.
     assert client.post("/procesar", data={
         "_csrf": token, "mensaje_id": "mensaje1", "modo": "uno"
+    }).status_code == 400
+    assert client.post("/procesar", data={
+        "_csrf": token, "mensaje_id": "mensaje1"
     }).status_code == 302
     assert "Primero use" in client.get("/").text
     assert "processed" not in called
@@ -114,7 +120,7 @@ def test_safe_web_flow_uses_explicit_verification_and_single_pdf(entorno, monkey
     assert "Google Sheets verificado" in client.get("/").text
 
     assert client.post("/procesar", data={
-        "_csrf": token, "mensaje_id": "mensaje1", "modo": "uno"
+        "_csrf": token, "mensaje_id": "mensaje1"
     }).status_code == 302
     assert finished.wait(3)
-    assert ("processed", 1) in called
+    assert ("processed", 39) in called

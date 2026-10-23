@@ -92,8 +92,7 @@
 <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
 <input type="hidden" name="mensaje_id" value="{{ correo.id }}">
 {% if destino_prueba %}
-<button type="submit" name="modo" value="uno" {% if estado.estado == 'procesando' or not configurado or not destino_verificado %}disabled{% endif %}>Probar 1 PDF</button>
-<button type="submit" name="modo" value="todos" {% if estado.estado == 'procesando' or not configurado or not destino_verificado %}disabled{% endif %}>Procesar todos</button>
+<button type="submit" {% if estado.estado == 'procesando' or not configurado or not destino_verificado %}disabled{% endif %}>Procesar todos</button>
 {% else %}
 <button type="submit" {% if estado.estado == 'procesando' or not configurado %}disabled{% endif %}>Procesar</button>
 {% endif %}
@@ -103,7 +102,7 @@
 <td class="cantidad">{{ correo.pdf }}</td>
 </tr>{% endfor %}</tbody>
 </table></div>
-<p class="nota">«Probar 1 PDF» intenta agregar como máximo una fila a la copia de Google Sheets; «Procesar todos» revisa todos los adjuntos del correo seleccionado. Se omiten los números QC ya registrados. Compruebe el resultado antes de procesar todo.</p>
+<p class="nota">«Procesar todos» revisa los PDF adjuntos del correo seleccionado. La aplicación evita volver a agregar los números QC que ya están registrados en Google Sheets.</p>
 {% else %}
 <p class="vacio">Primero pulse «Buscar correos» para visualizar y seleccionar un mensaje.</p>
 {% endif %}

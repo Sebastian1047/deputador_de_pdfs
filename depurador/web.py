@@ -5,7 +5,6 @@ import argparse
 import hmac
 import json
 import logging
-from itertools import islice
 from io import BytesIO
 import os
 import secrets
@@ -474,7 +473,7 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
                   "No se modificó ningún dato.", "exito")
         return redirect(url_for("inicio"))
 
-    def ejecutar_proceso(sid: str, id_correo: str, limite_pdf: int | None = None):
+    def ejecutar_proceso(sid: str, id_correo: str):
         try:
             campos = _reglas(app.config["PDF_FIELDS_FILE"])
             cliente = servicio_correo()
@@ -484,15 +483,6 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
                 origen = OutlookMensajeSeleccionado(lector, id_correo)
             else:
                 origen = GmailMensajeSeleccionado(lector, id_correo)
-            if limite_pdf == 1:
-                # La prueba procesa como máximo un documento, no los 39 adjuntos.
-                fuente = origen
-
-                class SoloUnPDF:
-                    def adjuntos_pdf(self):
-                        yield from islice(fuente.adjuntos_pdf(), 1)
-
-                origen = SoloUnPDF()
             if app.config["TABLE_PROVIDER"] == "excel_online":
                 if app.config["MS_ONEDRIVE_OWNER"] and app.config["MS_ONEDRIVE_PATH"]:
                     destino = crear_excel_desde_onedrive(
@@ -549,8 +539,9 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
     def procesar_seleccionado():
         sid = session["sid"]
         id_correo = request.form.get("mensaje_id", "")
-        modo = request.form.get("modo", "todos")
-        if modo not in ("uno", "todos"):
+        # El modo limitado a un PDF fue retirado de la interfaz y de la ruta.
+        # Rechazar peticiones antiguas o manipuladas con "modo=uno".
+        if request.form.get("modo", "todos") != "todos":
             abort(400, description="Tipo de procesamiento no válido")
         actual = seleccion_actual(sid)
         if not actual or id_correo not in {v["id"] for v in actual["correos"]}:
@@ -575,11 +566,11 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
             flash("Ya existe un procesamiento activo. Espere a que termine.", "error")
             return redirect(url_for("inicio"))
         with mutex:
-            estados[sid] = {"estado": "procesando", "modo": modo}
+            estados[sid] = {"estado": "procesando"}
         try:
             hilo = threading.Thread(
                 target=ejecutar_proceso,
-                args=(sid, id_correo, 1 if modo == "uno" else None),
+                args=(sid, id_correo),
                 daemon=True,
             )
             hilo.start()
