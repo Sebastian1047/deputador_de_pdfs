@@ -5,6 +5,7 @@ import argparse
 import hmac
 import json
 import logging
+from itertools import islice
 import os
 import secrets
 import threading
@@ -23,6 +24,7 @@ from .excel_online import ExcelOnlineWriter, GraphExcelFile, crear_excel_desde_o
 from .gmail_personal import crear_servicio_gmail_personal
 from .oauth_web import iniciar_oauth, completar_oauth
 from .google_drive_sheet import COLUMNAS as COLUMNAS_SOLE, GoogleSheetsCreditosWriter
+from .google_sheet_checks import comprobar_hoja_creditos
 from .sole_pdf import extraer_credito_sole
 
 LOG = logging.getLogger(__name__)
@@ -125,6 +127,7 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
         return GmailReader(cliente, filtro, cantidad)
     cache: dict[str, dict] = {}
     estados: dict[str, dict] = {}
+    verificaciones_hoja: dict[str, tuple[str, float]] = {}
     mutex = threading.Lock()
     candado_proceso = threading.Lock()
     intentos: dict[str, list[float]] = {}
@@ -209,6 +212,15 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
                 flash("Usuario o contraseña incorrectos.", "error")
         return render_template("login.html")
 
+    def hoja_verificada(sid: str) -> bool:
+        if not (app.config["TABLE_PROVIDER"] == "google_sheets"
+                and app.config["GOOGLE_SHEETS_TEMPLATE"] == "creditos_sole"):
+            return True
+        with mutex:
+            anterior = verificaciones_hoja.get(sid)
+            return bool(anterior and anterior[0] == app.config["GOOGLE_SPREADSHEET_ID"]
+                        and anterior[1] > time.monotonic())
+
     def seleccion_actual(sid: str):
         with mutex:
             valor = cache.get(sid)
@@ -238,6 +250,9 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
                          else bool(app.config["GOOGLE_SPREADSHEET_ID"])),
             destino_nombre=("Excel Online" if app.config["TABLE_PROVIDER"] == "excel_online"
                             else "Google Sheets"),
+            destino_prueba=(app.config["TABLE_PROVIDER"] == "google_sheets"
+                            and app.config["GOOGLE_SHEETS_TEMPLATE"] == "creditos_sole"),
+            destino_verificado=hoja_verificada(sid),
             gmail_modo=app.config["MAIL_PROVIDER"] == "gmail",
             gmail_oauth_preparado=bool(
                 (app.config["GMAIL_OAUTH_CLIENT_FILE"] or app.config["GMAIL_OAUTH_CLIENT_JSON"])
@@ -342,7 +357,36 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
             flash("No fue posible consultar el correo. Revise conexión y permisos.", "error")
         return redirect(url_for("inicio"))
 
-    def ejecutar_proceso(sid: str, id_correo: str):
+    @app.post("/verificar-destino")
+    @requiere_login
+    def verificar_destino():
+        """Consultar permisos y encabezados sin descargar ni escribir ningún PDF."""
+        if not (app.config["TABLE_PROVIDER"] == "google_sheets"
+                and app.config["GOOGLE_SHEETS_TEMPLATE"] == "creditos_sole"):
+            abort(404)
+        sid = session["sid"]
+        with mutex:
+            verificaciones_hoja.pop(sid, None)
+        try:
+            service = servicio_destino()
+            comprobar_hoja_creditos(
+                service, app.config["GOOGLE_SPREADSHEET_ID"],
+                app.config["GOOGLE_SHEET_TAB"],
+            )
+        except Exception as exc:
+            LOG.warning("No se pudo comprobar acceso Sheets (%s)", type(exc).__name__)
+            flash("No se pudo verificar la hoja de prueba. Revise la cuenta de servicio, "
+                  "el ID del documento, el permiso Editor y los encabezados.", "error")
+        else:
+            with mutex:
+                verificaciones_hoja[sid] = (
+                    app.config["GOOGLE_SPREADSHEET_ID"], time.monotonic() + 900
+                )
+            flash("Google Sheets verificado: hoja accesible y siete columnas correctas. "
+                  "No se modificó ningún dato.", "exito")
+        return redirect(url_for("inicio"))
+
+    def ejecutar_proceso(sid: str, id_correo: str, limite_pdf: int | None = None):
         try:
             campos = _reglas(app.config["PDF_FIELDS_FILE"])
             cliente = servicio_correo()
@@ -352,6 +396,15 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
                 origen = OutlookMensajeSeleccionado(lector, id_correo)
             else:
                 origen = GmailMensajeSeleccionado(lector, id_correo)
+            if limite_pdf == 1:
+                # La prueba procesa como máximo un documento, no los 39 adjuntos.
+                fuente = origen
+
+                class SoloUnPDF:
+                    def adjuntos_pdf(self):
+                        yield from islice(fuente.adjuntos_pdf(), 1)
+
+                origen = SoloUnPDF()
             if app.config["TABLE_PROVIDER"] == "excel_online":
                 if app.config["MS_ONEDRIVE_OWNER"] and app.config["MS_ONEDRIVE_PATH"]:
                     destino = crear_excel_desde_onedrive(
@@ -404,6 +457,9 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
     def procesar_seleccionado():
         sid = session["sid"]
         id_correo = request.form.get("mensaje_id", "")
+        modo = request.form.get("modo", "todos")
+        if modo not in ("uno", "todos"):
+            abort(400, description="Tipo de procesamiento no válido")
         actual = seleccion_actual(sid)
         if not actual or id_correo not in {v["id"] for v in actual["correos"]}:
             abort(400, description="Seleccione primero un correo de la lista vigente")
@@ -412,7 +468,10 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
         else:
             configurado = bool(app.config["GOOGLE_SPREADSHEET_ID"])
         if not configurado:
-            flash("Falta configurar el Excel Online de destino en el servidor.", "error")
+            flash("Falta configurar el destino Google Sheets en el servidor.", "error")
+            return redirect(url_for("inicio"))
+        if not hoja_verificada(sid):
+            flash("Primero use «Verificar Google Sheets»; es una comprobación de solo lectura.", "error")
             return redirect(url_for("inicio"))
         try:
             if not _reglas(app.config["PDF_FIELDS_FILE"]):
@@ -424,9 +483,13 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
             flash("Ya existe un procesamiento activo. Espere a que termine.", "error")
             return redirect(url_for("inicio"))
         with mutex:
-            estados[sid] = {"estado": "procesando"}
+            estados[sid] = {"estado": "procesando", "modo": modo}
         try:
-            hilo = threading.Thread(target=ejecutar_proceso, args=(sid, id_correo), daemon=True)
+            hilo = threading.Thread(
+                target=ejecutar_proceso,
+                args=(sid, id_correo, 1 if modo == "uno" else None),
+                daemon=True,
+            )
             hilo.start()
         except Exception:
             candado_proceso.release()
@@ -442,6 +505,7 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
         with mutex:
             cache.pop(sid, None)
             estados.pop(sid, None)
+            verificaciones_hoja.pop(sid, None)
         session.clear()
         return redirect(url_for("login"))
 
