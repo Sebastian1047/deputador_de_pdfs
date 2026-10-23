@@ -1,4 +1,4 @@
-# Depurador de PDF · v0.8.1
+# Depurador de PDF · v0.8.2
 
 **Aplicación web Python para navegador (Render o Windows Server)**. Para las próximas pruebas, busca mensajes en Gmail personal, permite seleccionar un correo, extrae información de sus PDF adjuntos **en memoria** y agrega filas a una **hoja nativa de Google Sheets guardada en Google Drive**. La integración con Outlook y OneDrive se conserva solo como alternativa heredada.
 
@@ -104,3 +104,10 @@ Los campos esperados, en este orden, son `VARIEDAD`, `CAT`, `FINCA`, `RM`, `TOTA
 **Extractor PDF QC Inspection implementado:** el módulo `depurador/sole_pdf.py` reconoce `Product`, `Vendor`, `Credit Quantity`, `Total Credit`, `Credit #` y `Credit Date` para completar las siete columnas de la hoja histórica. `config/campos.json` ya declara el formato `creditos_sole`. Clasifica Pom→PO, Mums Spider→SP y Mums Cremon→CR; proveedor JN-...→JN y mes de Credit Date. Verifica también números de crédito ya existentes en la columna F para evitar duplicar registros anteriores al desarrollo. Probado con el PDF de ejemplo localmente y con PDFs sintéticos en GitHub, sin subir documentos del cliente. **Pendiente:** pruebas reales de conexión en Render con autorizaciones de Gmail y Google Sheets. La hoja de resumen `SUMA TOTAL` podría contener una tabla dinámica que no amplíe automáticamente el origen al agregar filas; verificar su rango y actualización tras convertir el Excel. Los registros históricos carecen de identificadores `document_key`; la deduplicación automática aplica a los PDF registrados por la aplicación desde la conexión inicial.
 
 [Cómo subir y convertir este archivo en Google Drive](docs/PLANTILLA_CREDITOS_SOLE.md).
+
+
+## Corrección autorización Gmail (v0.8.2)
+
+Se corrigió la política CSP del panel Flask para permitir que el botón **Autorizar Gmail con Google** navegue desde el formulario POST (respuesta 303) a **https://accounts.google.com**, sin habilitar otras salidas arbitrarias ni scripts remotos. Se preserva también el **verificador PKCE** en la sesión HTTPS entre el inicio y la devolución de Google, para poder intercambiar el código de autorización correctamente. Se añadieron pruebas automáticas de seguridad del redireccionamiento y del desafío PKCE.
+
+El despliegue de Render utiliza `autoDeployTrigger: off`, por lo que hay que ejecutar **Manual Deploy → Deploy latest commit** en Render para aplicar esta corrección después de actualizar GitHub. No es necesario volver a crear el cliente OAuth ni compartir secretos. La conexión real sigue pendiente de la prueba de usuario.

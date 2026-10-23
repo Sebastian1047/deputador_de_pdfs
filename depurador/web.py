@@ -151,7 +151,8 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; script-src 'self'; style-src 'self'; "
             "img-src 'self'; connect-src 'self'; object-src 'none'; "
-            "base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+            "base-uri 'none'; frame-ancestors 'none'; "
+            "form-action 'self' https://accounts.google.com"
         )
         return response
 
@@ -259,9 +260,10 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
             flash("Pendiente configurar OAuth web en el servidor.", "error")
             return redirect(url_for("inicio"))
         try:
-            url, estado = iniciar_oauth(
+            url, estado, verificador = iniciar_oauth(
                 _oauth_origen(), app.config["GMAIL_REDIRECT_URI"]
             )
+            session["gmail_oauth_verifier"] = verificador
             session["gmail_oauth_state"] = estado
             session["gmail_oauth_inicio"] = time.time()
             return redirect(url, code=303)
@@ -277,10 +279,12 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
         if app.config["MAIL_PROVIDER"] != "gmail":
             abort(404)
         esperado = session.pop("gmail_oauth_state", None)
+        verificador = session.pop("gmail_oauth_verifier", None)
         iniciado = session.pop("gmail_oauth_inicio", 0)
         recibido = request.args.get("state", "")
         if (
-            not esperado or not recibido or not hmac.compare_digest(esperado, recibido)
+            not esperado or not verificador or not recibido
+            or not hmac.compare_digest(esperado, recibido)
             or time.time() - iniciado > 600 or time.time() < iniciado
         ):
             abort(400, description="Estado de autorización inválido o vencido")
@@ -297,6 +301,7 @@ def create_app(config: dict | None = None, service_factory=None) -> Flask:
                 esperado, codigo,
                 app.config["GMAIL_TOKEN_FILE"],
                 app.config["GMAIL_EXPECTED_EMAIL"],
+                code_verifier=verificador,
             )
             flash("Gmail autorizado correctamente. Puede buscar correos con PDF.", "exito")
         except (OSError, ValueError, RuntimeError, PermissionError) as exc:

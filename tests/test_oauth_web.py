@@ -52,18 +52,19 @@ def test_oauth_web_inicia_y_verifica_estado_de_google(tmp_path, monkeypatch):
     monkeypatch.setattr(
         web, "iniciar_oauth",
         lambda client_file, uri: (
-            "https://accounts.google.com/o/oauth2/v2/auth?client_id=ejemplo", "ESTADO_SEGURO"
+            "https://accounts.google.com/o/oauth2/v2/auth?client_id=ejemplo", "ESTADO_SEGURO", "v" * 64
         ),
     )
     monkeypatch.setattr(
         web, "completar_oauth",
-        lambda *args: llamadas.append(args),
+        lambda *args, **kwargs: llamadas.append((args, kwargs)),
     )
     inicio = cliente.post("/oauth/google/conectar", data={"_csrf": csrf})
     assert inicio.status_code == 303
     assert inicio.headers["Location"].startswith("https://accounts.google.com/")
     with cliente.session_transaction() as session:
         assert session["gmail_oauth_state"] == "ESTADO_SEGURO"
+        assert session["gmail_oauth_verifier"] == "v" * 64
     incorrecto = cliente.get("/oauth/google/callback?state=OTRO&code=prueba")
     assert incorrecto.status_code == 400
     assert not llamadas
@@ -71,9 +72,10 @@ def test_oauth_web_inicia_y_verifica_estado_de_google(tmp_path, monkeypatch):
     correcto = cliente.get("/oauth/google/callback?state=ESTADO_SEGURO&code=CODIGO_PRUEBA")
     assert correcto.status_code == 302
     assert len(llamadas) == 1
-    assert llamadas[0][2] == "ESTADO_SEGURO"
-    assert llamadas[0][3] == "CODIGO_PRUEBA"
-    assert llamadas[0][5] == "pruebas@example.com"
+    assert llamadas[0][0][2] == "ESTADO_SEGURO"
+    assert llamadas[0][0][3] == "CODIGO_PRUEBA"
+    assert llamadas[0][0][5] == "pruebas@example.com"
+    assert llamadas[0][1]["code_verifier"] == "v" * 64
     repetido = cliente.get("/oauth/google/callback?state=ESTADO_SEGURO&code=CODIGO_PRUEBA")
     assert repetido.status_code == 400
     assert "autorizado correctamente" in cliente.get("/").text
@@ -83,7 +85,7 @@ def test_oauth_web_rechaza_respuesta_google_vencida(tmp_path, monkeypatch):
     _, cliente, csrf = app_cliente(tmp_path)
     monkeypatch.setattr(
         web, "iniciar_oauth",
-        lambda a, b: ("https://accounts.google.com/o/oauth2/v2/auth", "ESTADO"),
+        lambda a, b: ("https://accounts.google.com/o/oauth2/v2/auth", "ESTADO", "v" * 64),
     )
     cliente.post("/oauth/google/conectar", data={"_csrf": csrf})
     with cliente.session_transaction() as session:
@@ -114,3 +116,54 @@ def test_oauth_web_requiere_json_cliente_web(tmp_path):
     archivo.write_text(json.dumps({"installed": {"client_id": "ficticio"}}), encoding="utf-8")
     with pytest.raises(ValueError, match="Aplicación web"):
         crear_flujo_web(str(archivo), "https://app.ejemplo.com/oauth/google/callback")
+
+
+def test_oauth_csp_autoriza_redireccion_segura_a_google(tmp_path, monkeypatch):
+    """El 303 POST a accounts.google.com no debe quedar bloqueado por CSP."""
+    _, client, csrf = app_cliente(tmp_path)
+    monkeypatch.setattr(
+        web, "iniciar_oauth",
+        lambda a, b: (
+            "https://accounts.google.com/o/oauth2/v2/auth?client_id=example",
+            "STATE", "v" * 64
+        ),
+    )
+    home = client.get("/")
+    policy = home.headers["Content-Security-Policy"]
+    assert "form-action 'self' https://accounts.google.com" in policy
+    assert "script-src 'self'" in policy
+    assert "object-src 'none'" in policy
+    result = client.post("/oauth/google/conectar", data={"_csrf": csrf})
+    assert result.status_code == 303
+    assert result.location.startswith("https://accounts.google.com/")
+    assert "https://accounts.google.com" in result.headers["Content-Security-Policy"]
+
+
+def test_iniciar_oauth_usa_pkce_y_preserva_verificador():
+    import base64
+    import hashlib
+    from urllib.parse import parse_qs, urlparse
+    from depurador.oauth_web import iniciar_oauth, crear_flujo_web
+
+    config = {
+        "web": {
+            "client_id": "fake-id.apps.googleusercontent.com",
+            "client_secret": "fake-client-secret",
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "redirect_uris": ["https://ejemplo.onrender.com/oauth/google/callback"],
+        }
+    }
+    raw = "json:" + json.dumps(config)
+    uri = "https://ejemplo.onrender.com/oauth/google/callback"
+    url, estado, verifier = iniciar_oauth(raw, uri)
+    params = parse_qs(urlparse(url).query)
+    assert len(verifier) >= 43
+    assert params["state"] == [estado]
+    assert params["code_challenge_method"] == ["S256"]
+    expected = base64.urlsafe_b64encode(
+        hashlib.sha256(verifier.encode()).digest()
+    ).rstrip(b"=").decode()
+    assert params["code_challenge"] == [expected]
+    flujo = crear_flujo_web(raw, uri, state=estado, code_verifier=verifier)
+    assert flujo.code_verifier == verifier
