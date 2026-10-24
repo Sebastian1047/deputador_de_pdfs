@@ -55,7 +55,7 @@ Genere el hash sin guardar su contraseña en GitHub:
 
     .\.venv\Scripts\python.exe -m depurador.web --hash-password
 
-El programa solicita una contraseña de al menos 12 caracteres y devuelve un HASH para pegar en WEB_PASSWORD_HASH del archivo privado. No utilice directamente la contraseña como valor del hash.
+El programa solicita una contraseña de al menos 12 caracteres y devuelve un HASH para pegar en WEB_PASSWORD_HASH del archivo privado. **Pegue el hash entre comillas SIMPLES de PowerShell**, porque los valores de Werkzeug contienen símbolos $ y las comillas dobles los interpretarían como variables. No utilice directamente la contraseña como valor del hash.
 
 **Seguridad:** nunca enviar por chat ni subir a GitHub los archivos JSON, tokens, contraseñas o el contenido de config.local.ps1. La carpeta LocalAppData es privada por perfil en un Windows correctamente configurado; confirme ACL y políticas de la empresa. Para producción TI debe usar un gestor de secretos o ACL de cuenta de servicio.
 

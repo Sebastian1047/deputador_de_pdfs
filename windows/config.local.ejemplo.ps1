@@ -24,4 +24,5 @@ $env:WEB_SECURE_COOKIES = "false"   # SOLO localhost: no usar HTTP en LAN.
 # Clave privada generada por el instalador y hash de su contrasena.
 $env:WEB_SECRET_KEY = "__CLAVE_ALEATORIA_AUTOGENERADA__"
 $env:WEB_ADMIN_USER = "administrador"
-$env:WEB_PASSWORD_HASH = "__HASH_GENERADO_EN_SU_PC__"
+# Mantenga COMILLAS SIMPLES al pegar el hash: contiene caracteres $.
+$env:WEB_PASSWORD_HASH = '__HASH_GENERADO_EN_SU_PC__'
