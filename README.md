@@ -1,4 +1,4 @@
-# Depurador de PDF · v0.9.2
+# Depurador de PDF · v0.9.3
 
 **Aplicación web Python para navegador (Render o Windows Server)**. Para las próximas pruebas, busca mensajes en Gmail personal, permite seleccionar un correo, extrae información de sus PDF adjuntos **en memoria** y agrega filas a una **hoja nativa de Google Sheets guardada en Google Drive**. La integración con Outlook y OneDrive se conserva solo como alternativa heredada.
 
@@ -164,3 +164,10 @@ No se borran registros ni hojas, tampoco se alteran credenciales. Se añadieron 
 La aplicación ya fue verificada con los 39 PDF reales. Se retiró de **3. Seleccionar correo específico** el botón **Probar 1 PDF** y su modo interno limitado. Para cada correo se muestra únicamente **Procesar todos**. Se mantiene **Verificar Google Sheets (solo lectura)** antes del procesamiento y la protección de duplicados que consulta el número QC realmente existente en DETALLE DEVOLUCION. Peticiones antiguas con `modo=uno` se rechazan y no procesan documentos.
 
 Los módulos de consulta por período y el resumen PNG no cambian. En Render: **Deploys → Manual Deploy → Deploy latest commit**. No cambiar variables ni credenciales.
+
+
+## PC Windows provisional → Windows Server (v0.9.3)
+
+Se preparó una **instalación local reproducible** con Google Sheets como destino, sin cambiar los conectores ni los formularios. Documentación: [Instalación PC Gmail + Sheets](docs/INSTALACION_PC_GMAIL_SHEETS.md). Scripts de PowerShell: `windows/Instalar-PC.ps1` (Python 3.12, dependencias, pytest y plantilla de configuración privada en LOCALAPPDATA) y `windows/Iniciar-PC.ps1` (inicio **solo** en 127.0.0.1:8080, configuración y JSON de cuenta de servicio desde carpeta privada). La contraseña del panel se representa por hash; el secreto de sesión se genera localmente. **No** incluye secretos ni publica HTTP en la LAN.
+
+Para usarla en varios computadores se requiere un proxy HTTPS y DNS con autorización de TI y cambiar la URI OAuth y el valor WEB_SECURE_COOKIES. En Windows Server se usa **el mismo código**, pero con credenciales, rutas, HTTPS y servicio Windows configurados para ese entorno. En la etapa inicial, Google Sheets sigue siendo el repositorio de datos; no se crean archivos Excel locales. No ejecutar importaciones simultáneas desde Render y desde el PC hacia la misma hoja.
